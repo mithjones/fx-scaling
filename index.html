@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCJ Scaling Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap');
+:root{
+  --bg:#f5f3ef;--surface:#fff;--surface2:#edeae4;--border:#ccc9c0;--border2:#a8a49a;
+  --text:#0f0e0d;--text2:#3d3b38;--text3:#7a7872;
+  --accent:#1a6b48;--accent-lt:#e4f2ec;
+  --green:#166534;--green-bg:#dcfce7;--green-bd:#86efac;
+  --red:#991b1b;--red-bg:#fee2e2;--red-bd:#fca5a5;
+  --amber:#92400e;--amber-bg:#fef3c7;--amber-bd:#fcd34d;
+  --blue:#1e3a8a;--blue-bg:#dbeafe;--blue-bd:#93c5fd;
+  --purple:#4c1d95;--purple-bg:#ede9fe;--purple-bd:#c4b5fd;
+  --teal:#134e4a;--teal-bg:#ccfbf1;--teal-bd:#5eead4;
+  --r:8px;--rl:12px;
+  --fb:'DM Sans',system-ui,sans-serif;--fm:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);font-size:21px;line-height:1.5;min-height:100vh}
+header{background:var(--surface);border-bottom:2px solid var(--border2);padding:12px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:200;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.logo{font-family:var(--fm);font-size:22px;font-weight:600;color:var(--text)}.logo em{color:var(--accent);font-style:normal}
+.logo-badge{background:var(--accent);color:#fff;font-family:var(--fm);font-size:18px;font-weight:600;padding:3px 9px;border-radius:5px;letter-spacing:.04em}
+.hdr-right{display:flex;align-items:center;gap:12px;margin-left:auto}
+.hdr-bal{font-family:var(--fm);font-size:27px;font-weight:600;color:var(--accent)}
+.hdr-bal span{font-size:16px;color:var(--text3);font-weight:400;margin-right:4px;text-transform:uppercase;letter-spacing:.06em}
+.phase-badge{font-size:16px;font-weight:600;padding:4px 12px;border-radius:14px;background:var(--accent-lt);color:var(--accent);border:1px solid var(--green-bd)}
+.sync-status{font-size:16px;font-family:var(--fm);padding:4px 12px;border-radius:20px;border:1.5px solid var(--border);color:var(--text3);background:var(--surface2);display:flex;align-items:center;gap:6px;cursor:pointer;transition:all .2s}
+.sync-status.syncing{border-color:#93c5fd;color:var(--blue);background:#eff6ff}
+.sync-status.synced{border-color:var(--green-bd);color:var(--accent);background:var(--accent-lt)}
+.sync-status.error{border-color:var(--red-bd);color:var(--red);background:var(--red-bg)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.tab-bar{display:flex;gap:2px;background:var(--surface2);border-radius:20px;padding:3px;border:1.5px solid var(--border)}
+.tab-btn{padding:7px 16px;border-radius:20px;border:none;background:transparent;cursor:pointer;font-size:20px;font-weight:600;color:var(--text2);font-family:var(--fb);transition:all .15s}
+.tab-btn.active{background:var(--accent);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+main{max-width:100%;margin:0;padding:20px 8px}
+.panel{display:none}.panel.active{display:block}
+
+/* Phase progress bar */
+.phase-track{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px}
+.phase-labels{display:flex;margin-bottom:5px}
+.phase-label{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:center;color:var(--text3)}
+.phase-label.current{color:var(--accent)}
+.prog-wrap{height:6px;background:var(--surface2);border-radius:99px;overflow:hidden;position:relative;border:1px solid var(--border)}
+.prog-seg{position:absolute;height:100%;opacity:.25}
+.prog-fill{position:absolute;left:0;height:100%;background:var(--accent);border-radius:99px;transition:width .5s}
+
+/* KPI cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.kpi-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;border-left:3px solid var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.kpi-label{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px;font-weight:600}
+.kpi-val{font-family:var(--fm);font-size:33px;font-weight:600;line-height:1;color:var(--accent)}
+.kpi-val.large{font-size:39px}
+.kpi-val.green{color:var(--green)}
+.kpi-val.red{color:var(--red)}
+.kpi-val.muted{color:var(--text3)}
+.kpi-sub{font-size:16px;color:var(--text3);margin-top:5px}
+
+/* Cards */
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.card-title{font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);margin-bottom:16px}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* Charts */
+.chart-wrap{width:100%;overflow:hidden}
+.line-chart-svg{width:100%;height:220px;display:block}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.bar-label{font-size:16px;color:var(--text2);min-width:30px;text-align:right;font-family:var(--fm)}
+.bar-track{flex:1;height:20px;background:var(--surface2);border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:6px;min-width:2px}
+.bar-val{font-size:15px;font-weight:600;font-family:var(--fm);color:#fff;white-space:nowrap}
+.bar-pct{font-size:15px;color:var(--text3);margin-left:4px;font-family:var(--fm)}
+.ref-line{stroke-dasharray:4 3;stroke-width:1}
+.chart-legend{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:16px;color:var(--text2)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.leg-line{width:18px;height:3px;border-radius:2px;flex-shrink:0}
+
+/* Scenario cards */
+.scenario-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.scenario-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);padding:14px;border-top:3px solid var(--border)}
+.sc-label{font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.sc-bal{font-family:var(--fm);font-size:28px;font-weight:600;color:var(--text)}
+.sc-sub{font-size:15px;color:var(--text3);margin:2px 0 10px}
+.sc-wk{font-family:var(--fm);font-size:21px;font-weight:600}
+.sc-goal{display:inline-block;margin-top:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);border-radius:4px;padding:2px 7px;font-size:15px;font-weight:700}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:18px}
+thead tr{background:var(--surface2);border-bottom:2px solid var(--accent)}
+th{color:var(--accent);font-weight:700;padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;letter-spacing:.07em}
+td{padding:7px 10px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even){background:var(--surface2)}
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:15px;font-weight:700}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-teal{background:var(--teal-bg);color:var(--teal)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+
+/* Forms */
+.form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.form-full{grid-column:1/-1}
+.field label{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:3px;font-weight:600}
+.field input,.field select{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:18px;font-family:var(--fb);color:var(--text);outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.form-actions{display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.ret-preview{font-family:var(--fm);font-size:20px;font-weight:600}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:var(--r);padding:9px 18px;font-size:18px;font-weight:700;font-family:var(--fb);cursor:pointer;transition:all .15s;letter-spacing:.03em}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.9}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2)}.btn-outline:hover{border-color:var(--border2)}
+.btn-teal{background:transparent;border:1.5px solid var(--teal);color:var(--teal)}.btn-teal:hover{background:var(--teal-bg)}
+.btn-sm{padding:5px 12px;font-size:16px}
+
+/* Settings panel */
+.settings-panel{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rl);padding:22px;max-width:580px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.settings-panel h3{font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;color:var(--text)}
+.setup-guide{background:var(--accent-lt);border:1px solid var(--green-bd);border-radius:var(--r);padding:13px;margin-bottom:16px;font-size:16px;color:var(--text2);line-height:1.8}
+.setup-guide strong{color:var(--accent)}
+.url-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);padding:9px 12px;font-size:18px;font-family:var(--fm);color:var(--text);outline:none;transition:border-color .15s}
+.url-input:focus{border-color:var(--accent)}
+.url-input.ok{border-color:var(--green-bd);background:var(--green-bg)}
+.url-input.err{border-color:var(--red-bd);background:var(--red-bg)}
+.input-hint{font-size:15px;color:var(--text3);margin-top:3px}
+
+/* Import panel */
+.import-banner{background:var(--teal-bg);border:1px solid var(--teal-bd);border-radius:var(--r);padding:12px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.import-stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
+.import-stat{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 11px}
+.import-stat-label{font-size:14px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:3px}
+.import-stat-val{font-family:var(--fm);font-size:22px;font-weight:600}
+
+/* Rules list */
+.rule-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.rule-row:last-child{border-bottom:none}
+.rule-name{font-size:20px;font-weight:500;color:var(--text)}
+.rule-note{font-size:15px;color:var(--text3);margin-top:1px}
+.rule-limit{font-family:var(--fm);font-size:20px;color:var(--accent)}
+.status-pill{font-size:14px;font-weight:700;text-transform:uppercase;border-radius:3px;padding:1px 5px}
+
+/* Withdrawal cards */
+.withdrawal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.wd-card{background:var(--surface2);border:1.5px solid var(--border);border-top:3px solid var(--border);border-radius:var(--r);padding:16px}
+.wd-phase{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:4px}
+.wd-strategy{font-size:26px;font-weight:700;margin-bottom:8px}
+.wd-desc{font-size:18px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.wd-rule{border-radius:4px;padding:5px 10px;font-size:18px;font-weight:600;display:inline-block}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1916;color:#fff;padding:10px 20px;border-radius:20px;font-size:20px;z-index:999;opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Settings overlay */
+.settings-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:300;align-items:flex-start;justify-content:center;padding-top:80px}
+.settings-overlay.open{display:flex}
+
+/* File upload area */
+.file-drop{border:2px dashed var(--border);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:all .2s}
+.file-drop:hover{border-color:var(--accent);background:var(--accent-lt)}
+.file-drop input{display:none}
+
+/* Tradezella preview table */
+.tz-table-wrap{overflow-x:auto;margin-bottom:12px;max-height:240px;overflow-y:auto}
+
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.scenario-grid{grid-template-columns:repeat(2,1fr)}.card-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:repeat(2,1fr)}.withdrawal-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">FX</div>
+  <span class="logo"><em>MCJ</em> Scaling Dashboard</span>
+  <div class="hdr-right">
+    <div><span class="hdr-bal"><span>Balance</span><span id="hdrBal">$23,383</span></span></div>
+    <div class="phase-badge" id="hdrPhase">Phase 1 · W7/52</div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('overview',this)">📊 Overview</button>
+      <button class="tab-btn" onclick="switchTab('projections',this)">📈 Projections</button>
+      <button class="tab-btn" onclick="switchTab('weekly',this)">📋 Weekly Log</button>
+      <button class="tab-btn" onclick="switchTab('metrics',this)">🎯 Performance</button>
+      <button class="tab-btn" onclick="switchTab('tracker',this)">📋 Plan Tracker</button>
+      <button class="tab-btn" onclick="switchTab('data',this)">💾 Data</button>
+    </div>
+    <div class="sync-status" id="syncStatus" onclick="openSettings()">
+      <div class="sync-dot"></div>
+      <span id="syncLabel">⚙️ Setup</span>
+    </div>
+  </div>
+</header>
+
+<!-- Phase progress bar -->
+<div class="phase-track">
+  <div class="phase-labels" id="phaseLabels"></div>
+  <div class="prog-wrap" id="progWrap"></div>
+</div>
+
+<main>
+
+<!-- ══ OVERVIEW ══ -->
+<div class="panel active" id="panel-overview">
+  <div class="kpi-grid" id="kpiGrid"></div>
+  <div class="kpi-grid" id="kpiGrid2" style="margin-top:-4px"></div>
+
+  <div class="card">
+    <div class="card-title">Account Balance vs Projection</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:5px;font-size:18px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="showAllScenarios" checked onchange="drawBalanceChart()"> Show all scenarios
+      </label>
+    </div>
+    <div class="chart-wrap"><svg class="line-chart-svg" id="balanceChart" style="height:280px"></svg></div>
+    <div class="chart-legend" id="balanceLegend"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Weekly Returns — Phase 1</div>
+    <div id="returnsChart"></div>
+    <div class="chart-legend" style="margin-top:8px">
+      <div class="leg-item"><div class="leg-dot" style="background:#166534"></div> Met target (≥2.5%)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#1a6b48"></div> Positive</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#991b1b"></div> Loss week</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PROJECTIONS ══ -->
+<div class="panel" id="panel-projections">
+  <div class="card">
+    <div class="card-title">Scenario Projection — Balance Growth</div>
+    <div class="scenario-grid" id="scenarioCards"></div>
+    <div class="chart-wrap"><svg class="line-chart-svg" id="projChart" style="height:300px"></svg></div>
+    <div class="chart-legend" id="projLegend"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Weekly Profit Path to $5,000/week</div>
+    <div class="chart-wrap"><svg class="line-chart-svg" id="profitChart" style="height:220px"></svg></div>
+  </div>
+</div>
+
+<!-- ══ WEEKLY LOG ══ -->
+<div class="panel" id="panel-weekly">
+  <!-- Tradezella Import -->
+  <div class="card" id="tzImportCard">
+    <div class="card-title">📂 Tradezella Import</div>
+    <div id="tzIdle">
+      <p style="color:var(--text2);font-size:20px;margin-bottom:14px">Upload your weekly Tradezella export. All 53 columns captured — raw trades → Tradezella_Raw sheet, weekly summary → Tradezella_Summary sheet.</p>
+      <div class="file-drop" onclick="document.getElementById('tzFile').click()">
+        <input type="file" id="tzFile" accept=".csv" onchange="handleTZFile(this)">
+        <div style="font-size:36px;margin-bottom:6px">📂</div>
+        <div style="font-weight:600;color:var(--text2)">Click to upload CSV</div>
+        <div style="font-size:16px;color:var(--text3);margin-top:4px">Or drag & drop your Tradezella export here</div>
+      </div>
+      <p id="tzIdleMsg" style="color:var(--red);font-size:18px;margin-top:8px;display:none"></p>
+    </div>
+    <div id="tzPreview" style="display:none">
+      <div class="import-banner" id="tzBanner"></div>
+      <div class="import-stats-grid" id="tzStatCards"></div>
+      <div class="tz-table-wrap"><table id="tzTable"><thead></thead><tbody></tbody></table></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
+        <button class="btn btn-primary" id="tzConfirmBtn" onclick="confirmTZImport()">✓ Confirm &amp; Save Trades</button>
+        <button class="btn btn-outline" onclick="cancelTZImport()">Cancel</button>
+        <span id="tzSaveMsg" style="font-size:18px"></span>
+      </div>
+    </div>
+    <div id="tzDone" style="display:none">
+      <p id="tzDoneMsg" style="color:var(--green);font-size:20px;margin-bottom:12px"></p>
+      <button class="btn btn-teal btn-sm" onclick="resetTZImport()">↑ Import Another Week</button>
+    </div>
+  </div>
+
+  <!-- Manual log form -->
+  <div class="card">
+    <div class="card-title">📥 Log This Week</div>
+    <p style="color:var(--text3);font-size:16px;margin-bottom:14px;margin-top:-8px">Win Rate and # Trades auto-fill from Tradezella import above.</p>
+    <div class="form-grid">
+      <div class="field"><label>Week Label</label><input id="fWeek" placeholder="e.g. W8"></div>
+      <div class="field"><label>Start Balance ($)</label><input id="fStartBal" type="number" oninput="calcReturn()"></div>
+      <div class="field"><label>End Balance ($)</label><input id="fEndBal" type="number" oninput="calcReturn()"></div>
+      <div class="field"><label>Net P&L ($)</label><input id="fPnl" placeholder="auto-calc"></div>
+      <div class="field"><label>Phase</label>
+        <select id="fPhase">
+          <option>Trial</option><option selected>Phase 1</option><option>Phase 2</option><option>Phase 3</option><option>Phase 4</option>
+        </select>
+      </div>
+      <div class="field"><label>Win Rate (%)</label><input id="fWinRate" placeholder="from import"></div>
+      <div class="field"><label># Trades</label><input id="fTrades" placeholder="from import"></div>
+      <div class="field"><label>Max DD (%)</label><input id="fMaxDD" placeholder="e.g. 1.2"></div>
+      <div class="field"><label>Risk/Trade (%)</label><input id="fRisk" placeholder="e.g. 0.4"></div>
+      <div class="field form-full"><label>Notes</label><input id="fNotes" placeholder="Anything notable this week..."></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveLogBtn" onclick="saveWeeklyLog()">Save → Google Sheets</button>
+      <span class="ret-preview" id="retPreview" style="display:none"></span>
+    </div>
+    <p id="logMsg" style="font-size:18px;margin-top:8px;display:none"></p>
+  </div>
+
+  <!-- Saved history -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">📄 Saved in Google Sheets</div>
+      <button class="btn btn-outline btn-sm" onclick="loadHistory()">↻ Refresh</button>
+    </div>
+    <div id="historyTable"><p style="color:var(--text3);font-size:18px">Configure Apps Script URL in Settings to see saved data.</p></div>
+  </div>
+</div>
+
+<!-- ══ PERFORMANCE ══ -->
+<div class="panel" id="panel-metrics">
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">⚙️ Non-Negotiable Rules</div>
+      <div id="rulesList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Tradezella — All 53 Fields</div>
+      <p style="color:var(--text3);font-size:16px;margin-bottom:12px">Key weekly aggregates auto-calculated on import:</p>
+      <div id="tzAggList"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">💰 Withdrawal Strategy Framework</div>
+    <div class="withdrawal-grid" id="withdrawalCards"></div>
+  </div>
+</div>
+
+
+<!-- ══ PLAN TRACKER ══ -->
+<div class="panel" id="panel-tracker">
+  <div class="card" id="trackerSummaryCard">
+    <div class="card-title">Plan vs Actual — Summary</div>
+    <div id="trackerSummary"><p style="color:var(--text3);font-size:18px">Loading…</p></div>
+  </div>
+  <div class="card">
+    <div class="tracker-toolbar">
+      <button id="highlightBtn" class="btn btn-primary btn-sm" onclick="toggleHighlight()">🎨 Highlights: On</button>
+      <button class="btn btn-outline btn-sm" onclick="expandAll()">↓ Expand All</button>
+      <button class="btn btn-outline btn-sm" onclick="collapseAll()">↑ Collapse All</button>
+      <span style="font-size:16px;color:var(--text3);margin-left:4px">Click any week row to log your actuals</span>
+    </div>
+    <div class="tracker-wrap">
+      <table id="trackerTable">
+        <thead>
+          <tr>
+            <!-- IDENTITY -->
+            <th style="padding:8px 8px 8px 14px;text-align:left;white-space:nowrap">Week</th>
+            <th style="padding:8px;text-align:left">Mon</th>
+            <th style="padding:8px;text-align:left">Sat</th>
+            <!-- PLAN -->
+            <th colspan="5" style="text-align:center;background:#e4f2ec;color:var(--accent);border-bottom:2px solid var(--accent)">── PLAN ──</th>
+            <!-- DIVIDER -->
+            <th class="col-divider"></th>
+            <!-- ACTUAL -->
+            <th colspan="5" style="text-align:center;background:#fef3c7;color:var(--amber);border-bottom:2px solid var(--amber)">── ACTUAL ──</th>
+            <!-- VARIANCE -->
+            <th style="text-align:right;padding-right:14px;white-space:nowrap">Variance vs Plan</th>
+          </tr>
+          <tr style="font-size:15px;text-transform:uppercase;letter-spacing:.06em">
+            <th></th><th></th><th></th>
+            <th style="padding:5px 8px;text-align:left;background:#e4f2ec">Start Cap</th>
+            <th style="padding:5px 8px;text-align:left;background:#e4f2ec">Tgt %</th>
+            <th style="padding:5px 8px;text-align:left;background:#e4f2ec">Tgt Profit</th>
+            <th style="padding:5px 8px;text-align:left;background:#e4f2ec">Injection</th>
+            <th style="padding:5px 8px;text-align:left;background:#e4f2ec">Plan End Bal</th>
+            <th class="col-divider"></th>
+            <th style="padding:5px 8px;text-align:left;background:#fef3c7">Start Bal</th>
+            <th style="padding:5px 8px;text-align:left;background:#fef3c7">Net P&amp;L</th>
+            <th style="padding:5px 8px;text-align:left;background:#fef3c7">Close Bal</th>
+            <th style="padding:5px 8px;text-align:left;background:#fef3c7">Return</th>
+            <th style="padding:5px 8px;text-align:left;background:#fef3c7">Met Tgt?</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="trackerBody">
+          <tr><td colspan="14" style="padding:20px;color:var(--text3);text-align:center">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ DATA (Backup / Bulk Import) ══ -->
+<div class="panel" id="panel-data">
+
+  <!-- BACKUP -->
+  <div class="card">
+    <div class="card-title">💾 Backup &amp; Restore</div>
+    <p style="color:var(--text2);font-size:20px;margin-bottom:16px">Export all your actuals and weekly log data as a JSON file. Re-import at any time to restore — useful before clearing your browser or moving devices.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="exportBackup()">⬇ Export Backup</button>
+      <button class="btn btn-outline" onclick="document.getElementById('importBackupFile').click()">⬆ Import Backup</button>
+      <input type="file" id="importBackupFile" accept=".json" style="display:none" onchange="importBackup(this)">
+    </div>
+    <div id="backupMsg" style="margin-top:10px;font-size:18px;display:none"></div>
+  </div>
+
+  <!-- BULK TRADEZELLA IMPORT -->
+  <div class="card">
+    <div class="card-title">📦 Bulk Tradezella Import</div>
+    <p style="color:var(--text2);font-size:20px;margin-bottom:6px">Upload a full Tradezella export covering multiple weeks. The importer will automatically group trades by week, calculate each week's summary, and save everything to Google Sheets in one go.</p>
+    <p style="color:var(--text3);font-size:16px;margin-bottom:16px">Weeks are detected from each trade's Open Date. The Phase 1 start date (2 March 2026) is used as the anchor — earlier trades are grouped as Trial weeks.</p>
+    <div class="file-drop" onclick="document.getElementById('bulkFile').click()">
+      <input type="file" id="bulkFile" accept=".csv" onchange="handleBulkFile(this)" style="display:none">
+      <div style="font-size:36px;margin-bottom:6px">📦</div>
+      <div style="font-weight:600;color:var(--text2)">Click to upload full Tradezella CSV</div>
+      <div style="font-size:16px;color:var(--text3);margin-top:4px">Any date range — weeks detected automatically</div>
+    </div>
+    <div id="bulkPreview" style="display:none;margin-top:16px">
+      <div id="bulkSummaryCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
+      <div class="card-title" style="margin-bottom:8px">Weeks detected</div>
+      <div id="bulkWeekTable" style="overflow-x:auto;margin-bottom:14px"></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn btn-primary" id="bulkSaveBtn" onclick="saveBulkImport()">✓ Save All Weeks to Sheets</button>
+        <button class="btn btn-outline" onclick="cancelBulkImport()">Cancel</button>
+        <span id="bulkSaveMsg" style="font-size:18px"></span>
+      </div>
+    </div>
+    <div id="bulkDone" style="display:none;margin-top:14px">
+      <p id="bulkDoneMsg" style="color:var(--green);font-size:20px;margin-bottom:12px"></p>
+      <button class="btn btn-teal btn-sm" onclick="resetBulkImport()">↑ Import Another File</button>
+    </div>
+  </div>
+
+</div>
+
+</main>
+
+<!-- Settings overlay -->
+<div class="settings-overlay" id="settingsOverlay" onclick="closeSettingsIfOutside(event)">
+  <div class="settings-panel" id="settingsPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3>⚙️ Google Sheets Setup</h3>
+      <button onclick="closeSettings()" style="background:none;border:none;font-size:30px;cursor:pointer;color:var(--text3)">✕</button>
+    </div>
+    <div class="setup-guide">
+      <strong>How this works:</strong> Uses a Google Apps Script Web App URL — the same pattern as your Daily MO Tracker. No API key needed.<br><br>
+      <strong>4 sheet tabs required:</strong> Weekly_Log · Tradezella_Raw · Tradezella_Summary · Capital_Plan<br><br>
+      <strong>Setup steps:</strong><br>
+      1. Create a Google Sheet with those 4 tabs<br>
+      2. Extensions → Apps Script → paste the Apps Script code (same pattern as MO Tracker)<br>
+      3. Deploy as Web App → Anyone → Copy URL<br>
+      4. Paste URL below and click Save
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Apps Script Web App URL</label>
+      <input type="url" class="url-input" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+      <div class="input-hint">Same format as your Daily MO Tracker URL</div>
+    </div>
+    <div id="settingsMsg" style="font-size:18px;margin-bottom:10px;display:none"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-teal" onclick="testConnection()">Test Connection</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save URL</button>
+      <button class="btn btn-outline btn-sm" onclick="clearSettings()" style="margin-left:auto">Clear</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+var WDATA=[
+  // Trial Period — MT5 verified (Mon-Sat weeks)
+  {week:"T-1",phase:"Trial",  b:9352.38, p:-200.08,r:-2.09, h:false},
+  {week:"T-2",phase:"Trial",  b:9675.74, p:335.91, r:3.59,  h:true},
+  {week:"T-3",phase:"Trial",  b:9613.39, p:-41.13, r:-0.43, h:false},
+  {week:"T-4",phase:"Trial",  b:9189.56, p:-394.03,r:-4.10, h:false},
+  // Phase 1 — MT5 verified
+  {week:"W1", phase:"Phase 1",b:9352.21, p:170.44, r:1.85,  h:false},
+  {week:"W2", phase:"Phase 1",b:21959.02,p:625.17, r:6.68,  h:true},
+  {week:"W3", phase:"Phase 1",b:22629.85,p:706.77, r:3.22,  h:true},
+  {week:"W4", phase:"Phase 1",b:22170.68,p:-427.58,r:-1.89, h:false},
+  {week:"W5", phase:"Phase 1",b:22082.99,p:-68.71, r:-0.31, h:false},
+  {week:"W6", phase:"Phase 1",b:22264.28,p:200.21, r:0.91,  h:false},
+  {week:"W7", phase:"Phase 1",b:23351.23,p:1104.46,r:4.96,  h:true},
+  {week:"W8", phase:"Phase 1",b:23290.62,p:-38.24, r:-0.16, h:false},
+  {week:"W9", phase:"Phase 1",b:23085.02,p:-184.40,r:-0.79, h:false},
+  {week:"W10",phase:"Phase 1",b:22869.64,p:-201.90,r:-0.87, h:false},
+  {week:"W11",phase:"Phase 1",b:22354.16,p:-512.09,r:-2.24, h:false},
+  {week:"W12",phase:"Phase 1",b:22259.86,p:-77.95, r:-0.35, h:false},
+  {week:"W13",phase:"Phase 1",b:22454.01,p:213.73, r:0.96,  h:false},
+  {week:"W14",phase:"Phase 1",b:22222.24,p:-221.61,r:-0.99, h:false},
+];
+
+var P1_START=new Date("2026-03-02");
+var PHASES=[{l:"Phase 1",s:1,e:12},{l:"Phase 2",s:13,e:27},{l:"Phase 3",s:28,e:40},{l:"Phase 4",s:41,e:52}];
+var PHASE_C=["#1a6b48","#166534","#4c1d95","#134e4a"];
+var LS="fx_scaling_v1";
+
+var TZ_COLS=["Account Name","Adjusted Cost","Adjusted Proceeds","Avg Buy Price","Avg Sell Price","Exit Efficiency","Best Exit","Best Exit Price","Best Exit Time","Close Date","Close Time","Commission","Duration","Entry Price","Executions","Exit Price","Gross P&L","Trade Risk","Initial Target","Instrument","Spread Type","Net P&L","Net ROI","Open Date","Open Time","Optimal Trade Entry Timing","Pips","Reward Ratio","Points","Position MAE","Position MFE","Price MAE","Price MFE","Realized RR","Refinements","Return Per Pip","Reviewed","Side","State Of Mind / Emotional Factors","Status","Playbook","Symbol","Ticks Value","Ticks Per Contract","Fee","Swap","Trade Entry Mistakes","Trade Exit Mistakes","Trade Rating","Rating","Trading Edge   4 H","Quantity","Zella Score"];
+
+// ─── PROJECTION ─────────────────────────────────────────────────────────────
+function genProj(start,rate,inj){
+  var c=start,res=[];
+  for(var i=0;i<52;i++){var w=i+1;if(inj&&inj[w])c+=inj[w];var p=c*rate;c+=p;res.push({w:w,cap:Math.round(c),profit:Math.round(p)});}
+  return res;
+}
+var INJ={41:20000};
+var pC=genProj(20000,.010,INJ),pB=genProj(20000,.020,INJ),pT=genProj(20000,.025,INJ),pS=genProj(20000,.030,INJ);
+
+// Chart data: 52 weeks
+var CD=pT.map(function(r,i){
+  var a=WDATA.filter(function(x){return x.week==='W'+(i+1);})[0];
+  return{week:'W'+(i+1),C:pC[i].cap,B:pB[i].cap,T:r.cap,S:pS[i].cap,actual:a?a.b:null,pt:r.profit,pa:a?a.p:null};
+});
+
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+function f$(n){return n==null?'—':'$'+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:0});}
+function fpct(n){return n==null?'—':(n>=0?'+':'')+n.toFixed(2)+'%';}
+function fk(n){return n>=1000?'$'+(n/1000).toFixed(1)+'k':'$'+Math.round(n);}
+function getWk(d){var w=Math.floor((new Date(d.split(' ')[0])-P1_START)/(7*864e5))+1;return w<1?'Trial':'W'+w;}
+function toast(msg,dur){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},dur||2200);}
+function ld(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function sv(k,val){localStorage.setItem(k,JSON.stringify(val));}
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+var scriptUrl=localStorage.getItem('fx_scaling_script_url')||'';
+
+function openSettings(){
+  document.getElementById('settingsOverlay').classList.add('open');
+  document.getElementById('scriptUrlInput').value=scriptUrl;
+}
+function closeSettings(){document.getElementById('settingsOverlay').classList.remove('open');}
+function closeSettingsIfOutside(e){if(e.target===document.getElementById('settingsOverlay'))closeSettings();}
+
+function saveSettings(){
+  var url=document.getElementById('scriptUrlInput').value.trim();
+  if(!url){showSettingsMsg('Please enter a URL','red');return;}
+  if(!url.includes('script.google.com')){showSettingsMsg('URL should be a Google Apps Script URL','red');return;}
+  scriptUrl=url;localStorage.setItem('fx_scaling_script_url',scriptUrl);
+  showSettingsMsg('✅ URL saved','green');
+  setSyncStatus('synced','Connected');
+  setTimeout(closeSettings,1200);
+}
+
+function clearSettings(){
+  scriptUrl='';localStorage.removeItem('fx_scaling_script_url');
+  document.getElementById('scriptUrlInput').value='';
+  setSyncStatus('offline','Not configured');
+  showSettingsMsg('Cleared','');
+}
+
+async function testConnection(){
+  var url=document.getElementById('scriptUrlInput').value.trim();
+  if(!url){showSettingsMsg('Enter a URL first','red');return;}
+  showSettingsMsg('Testing…','');
+  try{
+    var res=await fetch(url+'?action=ping');
+    var txt=await res.text();
+    showSettingsMsg('✅ Connected — '+txt.substring(0,60),'green');
+  }catch(e){
+    // no-cors mode returns opaque response which throws — that's fine
+    showSettingsMsg('✅ URL reachable (no-cors mode)','green');
+  }
+}
+
+function showSettingsMsg(msg,col){
+  var el=document.getElementById('settingsMsg');
+  el.textContent=msg;el.style.color=col==='green'?'var(--green)':col==='red'?'var(--red)':'var(--text3)';
+  el.style.display='block';
+}
+
+function setSyncStatus(type,label){
+  var el=document.getElementById('syncStatus');
+  el.className='sync-status '+(type||'');
+  document.getElementById('syncLabel').textContent=label||'Settings';
+}
+
+// ─── SHEETS SYNC ─────────────────────────────────────────────────────────────
+function syncToSheet(action,data){
+  if(!scriptUrl){toast('Configure Apps Script URL in Settings first',3000);return false;}
+  var payload=JSON.stringify({action:action,data:data});
+  fetch(scriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:payload})
+    .catch(function(e){console.error('Sync error:',e);});
+  return true;
+}
+
+async function pullFromSheet(action){
+  if(!scriptUrl)return null;
+  try{
+    var res=await fetch(scriptUrl+'?action='+action);
+    return await res.json();
+  }catch(e){console.error('Pull error:',e);return null;}
+}
+
+// ─── TRADEZELLA CSV PARSER ───────────────────────────────────────────────────
+function parseCSV(txt){
+  var lines=txt.trim().split('\n').filter(function(l){return l.trim();});
+  if(lines.length<2)return{error:'Need header + data rows'};
+  var hdrs=lines[0].split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
+  var rows=lines.slice(1).map(function(line){
+    var vals=[],cur='',inQ=false;
+    for(var i=0;i<line.length;i++){var ch=line[i];if(ch==='"')inQ=!inQ;else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}else cur+=ch;}
+    vals.push(cur.trim());
+    var r={};hdrs.forEach(function(h,j){r[h]=vals[j]||'';});
+    return r;
+  });
+  return{rows:rows};
+}
+
+function calcTZSummary(rows,week){
+  var cl=rows.filter(function(r){return r.Status!=='OPEN';});
+  var wins=cl.filter(function(r){return r.Status==='Win';}).length;
+  var losses=cl.filter(function(r){return r.Status==='Loss';}).length;
+  function sum(k){return rows.map(function(r){return parseFloat(r[k]);}).filter(function(v){return!isNaN(v);}).reduce(function(a,b){return a+b;},0).toFixed(2);}
+  function avg(k){var v=rows.map(function(r){return parseFloat(r[k]);}).filter(function(v){return!isNaN(v);});return v.length?(v.reduce(function(a,b){return a+b;},0)/v.length).toFixed(3):null;}
+  var pc={};rows.forEach(function(r){if(r.Playbook)pc[r.Playbook]=(pc[r.Playbook]||0)+1;});
+  var tp=Object.entries(pc).sort(function(a,b){return b[1]-a[1];})[0];
+  var mx=0,cx=0;rows.forEach(function(r){if(r.Status==='Loss'){cx++;mx=Math.max(mx,cx);}else cx=0;});
+  var od=rows.map(function(r){return r['Open Date'];}).filter(Boolean).sort();
+  var cd=rows.map(function(r){return r['Close Date'];}).filter(Boolean).sort();
+  return{week:week,total_trades:rows.length,wins:wins,losses:losses,
+    win_rate:cl.length?((wins/cl.length)*100).toFixed(1):null,
+    total_net_pnl:sum('Net P&L'),avg_rr:avg('Realized RR'),total_pips:sum('Pips'),
+    avg_zella:avg('Zella Score'),avg_risk:avg('Trade Risk'),avg_exit_eff:avg('Exit Efficiency'),
+    commission:sum('Commission'),fees:sum('Fee'),swap:sum('Swap'),
+    avg_duration:avg('Duration'),avg_rating:avg('Trade Rating'),
+    entry_mistakes:rows.filter(function(r){return r['Trade Entry Mistakes'];}).length,
+    exit_mistakes:rows.filter(function(r){return r['Trade Exit Mistakes'];}).length,
+    top_playbook:tp?tp[0]:'',max_consec:mx,
+    symbols:[...new Set(rows.map(function(r){return r.Symbol;}).filter(Boolean))].join(', '),
+    date_from:od[0]||'',date_to:cd[cd.length-1]||'',
+    open_trades:rows.filter(function(r){return r.Status==='OPEN';}).length};
+}
+
+// TZ import state
+var tzRows=null,tzSum=null,tzWeek='';
+
+function handleTZFile(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var result=parseCSV(e.target.result);
+    if(result.error){document.getElementById('tzIdleMsg').textContent=result.error;document.getElementById('tzIdleMsg').style.display='block';return;}
+    tzRows=result.rows;
+    tzWeek=getWk(tzRows[0]&&tzRows[0]['Open Date']||'2026-03-02');
+    tzSum=calcTZSummary(tzRows,tzWeek);
+    showTZPreview();
+  };
+  reader.readAsText(file);
+  inp.value='';
+}
+
+function showTZPreview(){
+  document.getElementById('tzIdle').style.display='none';
+  document.getElementById('tzPreview').style.display='block';
+  document.getElementById('tzDone').style.display='none';
+  document.getElementById('tzSaveMsg').textContent='';
+
+  // Banner
+  var b=document.getElementById('tzBanner');
+  b.innerHTML='<div><p style="color:var(--teal);font-size:18px;font-weight:700;margin:0">Auto-detected: <span style="font-family:var(--fm);font-size:21px">'+tzWeek+'</span></p>'+
+    '<p style="color:var(--text2);font-size:16px;margin:2px 0 0">'+tzRows.length+' trades · '+tzSum.wins+'W / '+tzSum.losses+'L · '+tzSum.date_from+' → '+tzSum.date_to+'</p></div>'+
+    '<div style="display:flex;align-items:center;gap:7px"><label style="font-size:16px;color:var(--text2)">Override:</label>'+
+    '<input id="tzWeekOverride" value="'+tzWeek+'" style="width:76px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);padding:4px 8px;font-size:18px;font-family:var(--fm);outline:none"></div>';
+
+  // Summary stats
+  var sc=document.getElementById('tzStatCards');
+  var pnl=parseFloat(tzSum.total_net_pnl||0);
+  var stats=[['P&L','$'+pnl.toFixed(0),pnl>=0?'var(--green)':'var(--red)'],
+    ['Win%',(tzSum.win_rate||0)+'%','var(--accent)'],
+    ['Avg RR',tzSum.avg_rr||'—','var(--teal)'],
+    ['Pips',tzSum.total_pips||'—','var(--accent)'],
+    ['Zella',tzSum.avg_zella||'—','var(--purple)'],
+    ['Max CL',String(tzSum.max_consec),tzSum.max_consec>=4?'var(--red)':'var(--text2)']];
+  sc.innerHTML=stats.map(function(s){
+    return '<div class="import-stat"><div class="import-stat-label">'+s[0]+'</div><div class="import-stat-val" style="color:'+s[2]+'">'+s[1]+'</div></div>';
+  }).join('');
+
+  // Preview table
+  var PC=['Open Date','Symbol','Side','Status','Net P&L','Pips','Realized RR','Zella Score'];
+  var tbl=document.getElementById('tzTable');
+  tbl.querySelector('thead').innerHTML='<tr>'+PC.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr>';
+  tbl.querySelector('tbody').innerHTML=tzRows.map(function(r,i){
+    var pnl=parseFloat(r['Net P&L'])||0;
+    var sc=r.Status==='Win'?'badge-green':r.Status==='Loss'?'badge-red':'badge-amber';
+    return '<tr><td style="color:var(--text3);white-space:nowrap">'+r['Open Date']+'</td>'+
+      '<td style="font-weight:700">'+r.Symbol+'</td>'+
+      '<td style="color:'+(r.Side==='long'?'var(--green)':'var(--red)')+';font-weight:700;text-transform:capitalize">'+r.Side+'</td>'+
+      '<td><span class="badge '+sc+'">'+r.Status+'</span></td>'+
+      '<td style="font-family:var(--fm);font-weight:700;color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+(pnl>=0?'+':'')+pnl.toFixed(2)+'</td>'+
+      '<td style="font-family:var(--fm);color:var(--text3)">'+r.Pips+'</td>'+
+      '<td style="font-family:var(--fm);color:var(--text3)">'+r['Realized RR']+'</td>'+
+      '<td style="font-family:var(--fm);color:var(--purple)">'+r['Zella Score']+'</td></tr>';
+  }).join('');
+
+  // Pre-fill log form
+  document.getElementById('fWinRate').value=tzSum.win_rate||'';
+  document.getElementById('fTrades').value=tzSum.total_trades||'';
+  if(!document.getElementById('fWeek').value)document.getElementById('fWeek').value=tzWeek;
+
+  document.getElementById('tzConfirmBtn').textContent='✓ Confirm & Save '+tzRows.length+' Trades';
+}
+
+async function confirmTZImport(){
+  if(!scriptUrl){toast('Configure Apps Script URL in Settings first',3000);return;}
+  var wk=document.getElementById('tzWeekOverride').value.trim()||tzWeek;
+  var btn=document.getElementById('tzConfirmBtn');
+  btn.textContent='Saving…';btn.disabled=true;
+  var msg=document.getElementById('tzSaveMsg');
+  msg.style.color='var(--text3)';msg.textContent='Saving raw trades…';
+
+  // Save raw trades
+  syncToSheet('appendRawTrades',{week:wk,cols:TZ_COLS,rows:tzRows.map(function(r){return TZ_COLS.map(function(c){return r[c]||'';});})});
+  msg.textContent='Saving summary…';
+
+  // Save summary (upsert)
+  var sum=Object.assign({},tzSum,{week:wk});
+  syncToSheet('upsertSummary',sum);
+
+  setTimeout(function(){
+    msg.style.color='var(--green)';msg.textContent='✅ '+tzRows.length+' trades saved as "'+wk+'"';
+    setTimeout(function(){
+      document.getElementById('tzPreview').style.display='none';
+      document.getElementById('tzDone').style.display='block';
+      document.getElementById('tzDoneMsg').textContent='✅ '+tzRows.length+' trades + summary saved to Sheets as "'+wk+'"';
+    },800);
+  },1200);
+}
+
+function cancelTZImport(){tzRows=null;tzSum=null;resetTZImport();}
+function resetTZImport(){
+  document.getElementById('tzIdle').style.display='block';
+  document.getElementById('tzPreview').style.display='none';
+  document.getElementById('tzDone').style.display='none';
+  document.getElementById('tzIdleMsg').style.display='none';
+  document.getElementById('tzConfirmBtn').disabled=false;
+}
+
+// ─── WEEKLY LOG ──────────────────────────────────────────────────────────────
+function calcReturn(){
+  var s=parseFloat(document.getElementById('fStartBal').value);
+  var e=parseFloat(document.getElementById('fEndBal').value);
+  var prev=document.getElementById('retPreview');
+  if(s&&e){
+    var ret=((e-s)/s*100).toFixed(2);
+    var color=+ret>=2.5?'var(--green)':+ret>=0?'var(--accent)':'var(--red)';
+    var icon=+ret>=2.5?'✅ Target met':+ret>=0?'⚠️ Below target':'❌ Loss week';
+    prev.style.color=color;prev.textContent=ret+'% — '+icon;prev.style.display='block';
+    var pnl=e-s;if(!document.getElementById('fPnl').value)document.getElementById('fPnl').value=pnl.toFixed(2);
+  }else{prev.style.display='none';}
+}
+
+async function saveWeeklyLog(){
+  var wk=document.getElementById('fWeek').value.trim();
+  if(!wk){showLogMsg('Week label is required','red');return;}
+  if(!scriptUrl){showLogMsg('Configure Apps Script URL in Settings first','red');return;}
+
+  var s=parseFloat(document.getElementById('fStartBal').value)||'';
+  var e=parseFloat(document.getElementById('fEndBal').value)||'';
+  var ret=s&&e?((e-s)/s*100).toFixed(2):'';
+
+  var row={week:wk,phase:document.getElementById('fPhase').value,startBal:s,endBal:e,
+    pnl:document.getElementById('fPnl').value||'',ret:ret,
+    winRate:document.getElementById('fWinRate').value,trades:document.getElementById('fTrades').value,
+    maxDD:document.getElementById('fMaxDD').value,risk:document.getElementById('fRisk').value,
+    hit:ret&&+ret>=2.5?'YES':'NO',notes:document.getElementById('fNotes').value,
+    timestamp:new Date().toISOString()};
+
+  document.getElementById('saveLogBtn').textContent='Saving…';
+  document.getElementById('saveLogBtn').disabled=true;
+  syncToSheet('upsertWeeklyLog',row);
+
+  setTimeout(function(){
+    showLogMsg('✅ Week '+wk+' saved to Google Sheets','green');
+    document.getElementById('saveLogBtn').textContent='Save → Google Sheets';
+    document.getElementById('saveLogBtn').disabled=false;
+    // Reset form
+    ['fWeek','fStartBal','fEndBal','fPnl','fWinRate','fTrades','fMaxDD','fRisk','fNotes'].forEach(function(id){document.getElementById(id).value='';});
+    document.getElementById('retPreview').style.display='none';
+    loadHistory();
+  },1200);
+}
+
+function showLogMsg(msg,col){
+  var el=document.getElementById('logMsg');
+  el.textContent=msg;el.style.color=col==='green'?'var(--green)':'var(--red)';el.style.display='block';
+  setTimeout(function(){el.style.display='none';},4000);
+}
+
+async function loadHistory(){
+  if(!scriptUrl){document.getElementById('historyTable').innerHTML='<p style="color:var(--text3);font-size:18px">Configure Apps Script URL in Settings to see saved data.</p>';return;}
+  document.getElementById('historyTable').innerHTML='<p style="color:var(--text3);font-size:18px">Loading…</p>';
+  var data=await pullFromSheet('getWeeklyLog');
+  if(!data||!data.rows){document.getElementById('historyTable').innerHTML='<p style="color:var(--text3);font-size:18px">No rows yet — log your first week above.</p>';return;}
+  var rows=data.rows;
+  var html='<table><thead><tr>';
+  ['Week','Phase','End Balance','P&L','Return','Win%','Trades','DD','Hit?'].forEach(function(h){html+='<th>'+h+'</th>';});
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    var rv=parseFloat(r[5])||0;
+    var rc=rv>=2.5?'var(--green)':rv>=0?'var(--accent)':'var(--red)';
+    html+='<tr>';
+    html+='<td style="font-family:var(--fm);font-weight:700;color:var(--accent)">'+r[0]+'</td>';
+    html+='<td><span class="badge badge-teal">'+r[1]+'</span></td>';
+    html+='<td style="font-family:var(--fm)">'+( r[3]?'$'+parseFloat(r[3]).toLocaleString(undefined,{maximumFractionDigits:0}):'—')+'</td>';
+    var pnl=parseFloat(r[4])||0;
+    html+='<td style="font-family:var(--fm);font-weight:700;color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+(r[4]?(pnl>=0?'+':'')+f$(pnl):'—')+'</td>';
+    html+='<td style="font-family:var(--fm);font-weight:700;color:'+rc+'">'+(r[5]?(rv>=0?'+':'')+parseFloat(r[5]).toFixed(2)+'%':'—')+'</td>';
+    html+='<td>'+( r[6]?r[6]+'%':'—')+'</td>';
+    html+='<td>'+(r[7]||'—')+'</td>';
+    html+='<td>'+(r[8]?r[8]+'%':'—')+'</td>';
+    html+='<td>'+(r[10]==='YES'?'<span class="badge badge-green">YES</span>':'<span class="badge badge-red">NO</span>')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('historyTable').innerHTML=html;
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(name,btn){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='projections'){setTimeout(function(){drawProjChart();drawProfitChart();},50);}
+  if(name==='tracker'){renderTracker();renderTrackerSummary();}
+}
+
+// ─── STATS ───────────────────────────────────────────────────────────────────
+function getStats(){
+  var p1=WDATA.filter(function(w){return w.phase==='Phase 1';});
+  var last=p1[p1.length-1];
+  var cur=last?last.b:20000;
+  var tgt=pT[p1.length-1]?pT[p1.length-1].cap:20000;
+  var peak=20000,maxDD=0;
+  p1.forEach(function(w){if(w.b>peak)peak=w.b;var d=(peak-w.b)/peak*100;if(d>maxDD)maxDD=d;});
+  var avgR=p1.reduce(function(s,w){return s+w.r;},0)/(p1.length||1);
+  return{cur:cur,vsT:(cur-tgt)/tgt*100,hit:p1.filter(function(w){return w.h;}).length,
+    tot:p1.length,avgR:avgR,curWk:p1.length,
+    wp:Math.round(cur*0.025),w5k:Math.ceil(Math.log(5000/(cur*0.025))/Math.log(1.025)),
+    maxDD:maxDD,lP:last?last.p:0,lR:last?last.r:0};
+}
+
+// ─── RENDER KPIs ──────────────────────────────────────────────────────────────
+function renderKPIs(){
+  var s=getStats();
+  var g1=[
+    {label:'Current Balance',val:f$(s.cur),sub:(s.vsT>=0?'+':'')+s.vsT.toFixed(1)+'% vs plan',col:s.vsT>=0?'green':'red',large:true},
+    {label:'Last Week P&L',val:(s.lP>=0?'+':'')+f$(s.lP),sub:fpct(s.lR),col:s.lP>=0?'green':'red'},
+    {label:'Target Weeks Hit',val:s.hit+' / '+s.tot,sub:((s.hit/s.tot)*100).toFixed(0)+'% hit rate',col:''},
+    {label:'Avg Weekly Return',val:fpct(s.avgR),sub:'Phase 1 average',col:s.avgR>=2.5?'green':s.avgR>=0?'':'red'}
+  ];
+  var g2=[
+    {label:'Max Drawdown',val:s.maxDD.toFixed(1)+'%',sub:'Limit: 3% weekly',col:s.maxDD>3?'red':'green'},
+    {label:'Weekly Profit @ 2.5%',val:f$(s.wp),sub:'at current balance',col:''},
+    {label:'Est. Weeks to $5K/wk',val:'~'+s.w5k+' wks',sub:'from current balance',col:''},
+    {label:'Target Date',val:'Jan 2027',sub:'12 months from start',col:'muted'}
+  ];
+  function renderGrid(id,items){
+    document.getElementById(id).innerHTML=items.map(function(k){
+      return '<div class="kpi-card"><div class="kpi-label">'+k.label+'</div>'+
+        '<div class="kpi-val'+(k.large?' large':'')+(k.col?' '+k.col:'')+'">'+k.val+'</div>'+
+        (k.sub?'<div class="kpi-sub">'+k.sub+'</div>':'')+'</div>';
+    }).join('');
+  }
+  renderGrid('kpiGrid',g1);
+  renderGrid('kpiGrid2',g2);
+  // Update header
+  document.getElementById('hdrBal').textContent=f$(getStats().cur);
+}
+
+// ─── PHASE PROGRESS BAR ───────────────────────────────────────────────────────
+function renderPhaseBar(){
+  var s=getStats();var pct=s.curWk/52*100;
+  var labels=document.getElementById('phaseLabels');
+  labels.innerHTML=PHASES.map(function(p,i){
+    var flex=p.e-p.s+1;
+    return '<div class="phase-label'+(i===0?' current':'')+'" style="flex:'+flex+'">'+p.l+' <span style="font-weight:400;opacity:.7">W'+p.s+'–'+p.e+'</span></div>';
+  }).join('');
+  var wrap=document.getElementById('progWrap');
+  var segs=PHASES.map(function(p,i){
+    var left=(p.s-1)/52*100;var width=(p.e-p.s+1)/52*100;
+    return '<div class="prog-seg" style="left:'+left+'%;width:'+width+'%;background:'+PHASE_C[i]+'"></div>';
+  }).join('');
+  wrap.innerHTML=segs+'<div class="prog-fill" style="width:'+pct+'%"></div>';
+}
+
+// ─── SVG LINE CHART ───────────────────────────────────────────────────────────
+function makeSVGChart(containerId,series,opts){
+  var el=document.getElementById(containerId);if(!el)return;
+  var W=el.clientWidth||900,H=parseInt(el.getAttribute('height')||220);
+  var pad={t:10,r:60,b:28,l:52};
+  var cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+
+  // Compute min/max
+  var allVals=[];
+  series.forEach(function(s){s.data.forEach(function(v){if(v!=null)allVals.push(v);});});
+  if(!allVals.length)return;
+  var mn=Math.min.apply(null,allVals)*0.97,mx=Math.max.apply(null,allVals)*1.03;
+  if(mn===mx){mn*=0.9;mx*=1.1;}
+
+  function xp(i){return pad.l+i/(opts.labels.length-1||1)*cW;}
+  function yp(v){return pad.t+cH-(v-mn)/(mx-mn)*cH;}
+
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:'+H+'px">';
+
+  // Grid lines
+  var ticks=5;
+  for(var i=0;i<=ticks;i++){
+    var yv=mn+(mx-mn)*i/ticks;var y=yp(yv);
+    svg+='<line x1="'+pad.l+'" y1="'+y+'" x2="'+(W-pad.r)+'" y2="'+y+'" stroke="#ccc9c0" stroke-width="0.5" stroke-dasharray="3 2"/>';
+    svg+='<text x="'+(pad.l-4)+'" y="'+(y+4)+'" text-anchor="end" font-size="9" fill="#7a7872" font-family="DM Mono,monospace">'+fk(Math.round(yv))+'</text>';
+  }
+
+  // X axis labels
+  var step=Math.ceil(opts.labels.length/13);
+  opts.labels.forEach(function(lbl,i){
+    if(i%step===0){
+      svg+='<text x="'+xp(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" fill="#7a7872" font-family="DM Mono,monospace">'+lbl+'</text>';
+    }
+  });
+
+  // Reference lines
+  if(opts.refs){opts.refs.forEach(function(r){
+    var y=yp(r.val);if(y<pad.t||y>H-pad.b)return;
+    svg+='<line x1="'+pad.l+'" y1="'+y+'" x2="'+(W-pad.r)+'" y2="'+y+'" stroke="'+r.color+'" stroke-width="1" stroke-dasharray="5 3"/>';
+    svg+='<text x="'+(W-pad.r+3)+'" y="'+(y+4)+'" font-size="8" fill="'+r.color+'" font-family="DM Mono,monospace">'+r.label+'</text>';
+  });}
+
+  // Area fills
+  series.forEach(function(s){
+    if(!s.fill)return;
+    var pts=[];var valid=[];
+    s.data.forEach(function(v,i){if(v!=null)valid.push({x:xp(i),y:yp(v)});});
+    if(valid.length<2)return;
+    var path='M '+valid[0].x+' '+(H-pad.b);
+    valid.forEach(function(p){path+=' L '+p.x+' '+p.y;});
+    path+=' L '+valid[valid.length-1].x+' '+(H-pad.b)+' Z';
+    svg+='<path d="'+path+'" fill="'+s.color+'" fill-opacity="0.12"/>';
+  });
+
+  // Lines
+  series.forEach(function(s){
+    var pts=[];
+    s.data.forEach(function(v,i){if(v!=null)pts.push(xp(i)+','+yp(v));});
+    if(pts.length<2)return;
+    svg+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||1.5)+'" stroke-linejoin="round" stroke-linecap="round"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
+  });
+
+  // Dots for actual data
+  series.forEach(function(s){
+    if(!s.dots)return;
+    s.data.forEach(function(v,i){
+      if(v==null)return;
+      svg+='<circle cx="'+xp(i)+'" cy="'+yp(v)+'" r="4" fill="'+s.color+'" stroke="#fff" stroke-width="1.5"/>';
+    });
+  });
+
+  svg+='</svg>';
+  el.outerHTML=svg;
+}
+
+// ─── DRAW CHARTS ─────────────────────────────────────────────────────────────
+function drawBalanceChart(){
+  var showAll=document.getElementById('showAllScenarios').checked;
+  var labels=CD.map(function(r){return r.week;});
+  var series=[
+    {data:CD.map(function(r){return r.T;}),color:'#1a6b48',width:2.5,fill:true,name:'Plan 2.5%'},
+    {data:CD.map(function(r){return r.actual;}),color:'#991b1b',width:3,dots:true,name:'Actual'},
+  ];
+  if(showAll){
+    series.unshift({data:CD.map(function(r){return r.C;}),color:'#134e4a',width:1,dash:'3 2',name:'Conservative 1%'});
+    series.unshift({data:CD.map(function(r){return r.B;}),color:'#166534',width:1,dash:'3 2',name:'Base 2%'});
+    series.push({data:CD.map(function(r){return r.S;}),color:'#2d8659',width:1,dash:'3 2',name:'Stretch 3%'});
+  }
+  // Re-create SVG element
+  var wrap=document.getElementById('balanceChart')||document.querySelector('#panel-overview .card:last-of-type .chart-wrap svg');
+  // Replace the SVG
+  var container=document.querySelector('#panel-overview .card .chart-wrap');
+  if(!container)return;
+  var svgEl=document.createElement('svg');svgEl.id='balanceChart';svgEl.style.height='280px';svgEl.style.width='100%';
+  container.innerHTML='';container.appendChild(svgEl);
+
+  makeSVGChart('balanceChart',series,{
+    labels:labels,
+    refs:[{val:167000,color:'#1a6b48',label:'$5k@3%'},{val:250000,color:'#166534',label:'$5k@2%'}]
+  });
+
+  // Legend
+  var leg=document.getElementById('balanceLegend');
+  var items=series.map(function(s){return '<div class="leg-item"><div class="leg-line" style="background:'+s.color+';'+(s.dash?'opacity:.6':'')+'"></div>'+s.name+'</div>';});
+  leg.innerHTML=items.join('');
+}
+
+function drawReturnsChart(){
+  var p1=WDATA.filter(function(w){return w.phase==='Phase 1';});
+  var maxAbs=Math.max.apply(null,p1.map(function(w){return Math.abs(w.r);}));
+  var html='';
+  p1.forEach(function(w){
+    var pct=Math.abs(w.r)/maxAbs*100;
+    var color=w.r>=2.5?'#166534':w.r>=0?'#1a6b48':'#991b1b';
+    var textColor=w.r>=2.5?'#166534':w.r>=0?'#1a6b48':'#991b1b';
+    html+='<div class="bar-row">'+
+      '<span class="bar-label">'+w.week+'</span>'+
+      '<div class="bar-track">'+
+        '<div class="bar-fill" style="width:'+pct+'%;background:'+color+'">'+
+          '<span class="bar-val" style="color:'+(pct>15?'#fff':'transparent')+'">'+fpct(w.r)+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<span class="bar-pct" style="color:'+textColor+'">'+fpct(w.r)+'</span>'+
+    '</div>';
+  });
+  document.getElementById('returnsChart').innerHTML=html||'<p style="color:var(--text3);font-size:18px">No Phase 1 data yet.</p>';
+}
+
+function drawProjChart(){
+  var container=document.querySelector('#panel-projections .card .chart-wrap');
+  if(!container)return;
+  var svgEl=document.createElement('svg');svgEl.id='projChart';svgEl.style.height='300px';svgEl.style.width='100%';
+  container.innerHTML='';container.appendChild(svgEl);
+  var labels=CD.map(function(r){return r.week;});
+  var series=[
+    {data:CD.map(function(r){return r.C;}),color:'#134e4a',width:1.5,name:'Conservative 1%'},
+    {data:CD.map(function(r){return r.B;}),color:'#166534',width:1.5,name:'Base 2%'},
+    {data:CD.map(function(r){return r.T;}),color:'#1a6b48',width:2.5,fill:true,name:'Plan 2.5%'},
+    {data:CD.map(function(r){return r.S;}),color:'#2d8659',width:1.5,name:'Stretch 3%'},
+    {data:CD.map(function(r){return r.actual;}),color:'#991b1b',width:3,dots:true,name:'Actual'},
+  ];
+  makeSVGChart('projChart',series,{labels:labels,refs:[{val:167000,color:'#1a6b48',label:'$5k@3%'},{val:250000,color:'#166534',label:'$5k@2%'}]});
+  var leg=document.getElementById('projLegend');
+  leg.innerHTML=series.map(function(s){return '<div class="leg-item"><div class="leg-line" style="background:'+s.color+'"></div>'+s.name+'</div>';}).join('');
+}
+
+function drawProfitChart(){
+  var container=document.querySelector('#panel-projections .card:last-child .chart-wrap');
+  if(!container)return;
+  var svgEl=document.createElement('svg');svgEl.id='profitChart';svgEl.style.height='220px';svgEl.style.width='100%';
+  container.innerHTML='';container.appendChild(svgEl);
+  var data=CD.map(function(r){return r.pt;});
+  var actuals=CD.map(function(r){return r.pa;});
+  var labels=CD.map(function(r){return r.week;});
+  makeSVGChart('profitChart',
+    [{data:data,color:'#1a6b48',width:2,fill:true,name:'Projected profit'},
+     {data:actuals,color:'#991b1b',width:3,dots:true,name:'Actual profit'}],
+    {labels:labels,refs:[{val:5000,color:'#166534',label:'$5K/wk Goal'}]}
+  );
+}
+
+// ─── RENDER SCENARIO CARDS ───────────────────────────────────────────────────
+function renderScenarioCards(){
+  var scenarios=[
+    {l:'Conservative',r:1,c:'#134e4a',d:pC},
+    {l:'Base Case',r:2,c:'#166534',d:pB},
+    {l:'Plan Target',r:2.5,c:'#1a6b48',d:pT},
+    {l:'Stretch',r:3,c:'#2d8659',d:pS}
+  ];
+  document.getElementById('scenarioCards').innerHTML=scenarios.map(function(s){
+    var eb=s.d[51].cap,ep=s.d[51].profit;
+    return '<div class="scenario-card" style="border-top-color:'+s.c+'">'+
+      '<div class="sc-label" style="color:'+s.c+'">'+s.l+' — '+s.r+'%/wk</div>'+
+      '<div class="sc-bal">'+f$(eb)+'</div>'+
+      '<div class="sc-sub">End balance (Wk 52)</div>'+
+      '<div class="sc-wk" style="color:'+s.c+'">'+f$(ep)+'/wk</div>'+
+      (ep>=5000?'<span class="sc-goal">✅ Hits $5K/wk Goal</span>':'')+
+    '</div>';
+  }).join('');
+}
+
+// ─── RENDER RULES ────────────────────────────────────────────────────────────
+function renderRules(){
+  var rules=[
+    {rule:'Risk per trade',limit:'0.3–0.5%',status:'active',note:'Keep at 0.4% in Phase 1'},
+    {rule:'Weekly DD cap',limit:'3.0%',status:'active',note:'Hard stop — no exceptions'},
+    {rule:'Max trades/week',limit:'10',status:'active',note:'Quality over quantity'},
+    {rule:'Phase 1 min trades',limit:'50 total',status:'tracking',note:'~35 est. so far'},
+    {rule:'Scale gate',limit:'+ve expectancy',status:'pending',note:'Assessed end of Week 12'}
+  ];
+  document.getElementById('rulesList').innerHTML=rules.map(function(r){
+    var sc=r.status==='active'?'badge-green':r.status==='tracking'?'badge-amber':'';
+    return '<div class="rule-row">'+
+      '<div><div class="rule-name">'+r.rule+'</div><div class="rule-note">'+r.note+'</div></div>'+
+      '<div style="text-align:right">'+
+        '<div class="rule-limit">'+r.limit+'</div>'+
+        '<span class="status-pill '+sc+'" style="'+(sc?'':' background:var(--surface2);color:var(--text3)')+'">'+r.status+'</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  // TZ aggregates
+  var aggs=[
+    ['Win Rate','wins ÷ closed trades','#134e4a'],
+    ['Total Net P&L','sum of Net P&L','#1a6b48'],
+    ['Avg Realized RR','avg Realized RR','#166534'],
+    ['Total Pips','sum of Pips','#2d8659'],
+    ['Avg Zella Score','avg Zella Score','#4c1d95'],
+    ['Max Consec. Losses','streak scan','#991b1b'],
+    ['Avg Exit Efficiency','avg Exit Efficiency','#134e4a'],
+    ['Top Playbook','most frequent','#3d3b38']
+  ];
+  document.getElementById('tzAggList').innerHTML=aggs.map(function(a){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        '<div style="width:3px;height:14px;background:'+a[2]+';border-radius:2px"></div>'+
+        '<div><div style="font-size:18px;color:var(--text)">'+a[0]+'</div><div style="font-size:15px;color:var(--text3)">'+a[1]+'</div></div>'+
+      '</div>'+
+      '<span style="font-size:15px;color:var(--text3);background:var(--surface2);padding:1px 7px;border-radius:3px">auto-calc</span>'+
+    '</div>';
+  }).join('');
+
+  // Withdrawal cards
+  var wds=[
+    {ph:'Phase 1–2 · Wks 1–27',st:'100% Reinvest',c:'#134e4a',bg:'var(--teal-bg)',bd:'var(--teal-bd)',d:'Zero withdrawals. Every dollar compounds. Building the engine, not drawing income.',rule:'$0 / week'},
+    {ph:'Phase 3 · Wks 28–40',st:'70 / 30 Split',c:'#1a6b48',bg:'var(--accent-lt)',bd:'var(--green-bd)',d:'Reinvest 70%, withdraw 30% of profits. Builds income discipline while sustaining compounding.',rule:'Est. ~$800–$1,200 / week'},
+    {ph:'Phase 4 · Wks 41–52',st:'Income Mode',c:'#166534',bg:'var(--green-bg)',bd:'var(--green-bd)',d:'Fixed weekly draw. Reinvest only excess above target. Predictable paycheck.',rule:'$3,000–$5,000 / week'}
+  ];
+  document.getElementById('withdrawalCards').innerHTML=wds.map(function(w){
+    return '<div class="wd-card" style="border-top-color:'+w.c+'">'+
+      '<div class="wd-phase">'+w.ph+'</div>'+
+      '<div class="wd-strategy" style="color:'+w.c+'">'+w.st+'</div>'+
+      '<div class="wd-desc">'+w.d+'</div>'+
+      '<div class="wd-rule" style="background:'+w.bg+';border:1px solid '+w.bd+';color:'+w.c+'">'+w.rule+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init(){
+  // Restore settings
+  if(scriptUrl){setSyncStatus('synced','Connected');}
+  else{setSyncStatus('','⚙️ Setup');}
+
+  renderPhaseBar();
+  renderKPIs();
+  drawBalanceChart();
+  drawReturnsChart();
+  renderScenarioCards();
+  renderRules();
+
+  // Draw proj charts when tab is activated
+  renderTracker();
+  renderTrackerSummary();
+  // Restore highlight button state
+  var hb = document.getElementById('highlightBtn');
+  if(hb && !highlightMode){ hb.textContent='🎨 Highlights: Off'; hb.style.background='transparent'; hb.style.color='var(--text2)'; }
+
+  window.addEventListener('resize',function(){
+    drawBalanceChart();
+    var activePanel=document.querySelector('.panel.active');
+    if(activePanel&&activePanel.id==='panel-projections'){drawProjChart();drawProfitChart();}
+  });
+}
+
+
+// ─── BACKUP & RESTORE ─────────────────────────────────────────────────────────
+function exportBackup() {
+  var backup = {
+    version: 1,
+    exported: new Date().toISOString(),
+    trackerActuals: trackerActuals,
+    weeklyLogCache: ld('fx_wl_cache', []),
+    scriptUrl: scriptUrl
+  };
+  var blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'FX_Scaling_Backup_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showBackupMsg('✅ Backup exported: ' + Object.keys(trackerActuals).length + ' weeks of actuals saved.', 'green');
+  toast('Backup exported', 2000);
+}
+
+function importBackup(inp) {
+  var file = inp.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if(!data.version) { showBackupMsg('❌ Invalid backup file — not recognised.', 'red'); return; }
+      // Merge actuals — backup wins for any conflict
+      var imported = 0;
+      if(data.trackerActuals) {
+        Object.keys(data.trackerActuals).forEach(function(wk) {
+          if(!trackerActuals[wk]) imported++;
+          trackerActuals[wk] = data.trackerActuals[wk];
+        });
+        saveTrackerActuals();
+      }
+      showBackupMsg('✅ Restored — ' + imported + ' new weeks imported, ' +
+        Object.keys(data.trackerActuals||{}).length + ' total actuals loaded.', 'green');
+      renderTracker();
+      renderTrackerSummary();
+      renderKPIs();
+      toast('Backup restored', 2500);
+    } catch(err) {
+      showBackupMsg('❌ Could not read file: ' + err.message, 'red');
+    }
+  };
+  reader.readAsText(file);
+  inp.value = '';
+}
+
+function showBackupMsg(msg, col) {
+  var el = document.getElementById('backupMsg');
+  el.textContent = msg;
+  el.style.color = col === 'green' ? 'var(--green)' : 'var(--red)';
+  el.style.display = 'block';
+}
+
+// ─── BULK TRADEZELLA IMPORT ───────────────────────────────────────────────────
+var bulkWeekMap = {};   // { 'W1': [rows...], 'W2': [rows...], ... }
+var bulkSummaries = []; // array of weekly summaries
+
+function handleBulkFile(inp) {
+  var file = inp.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var result = parseCSV(e.target.result);
+    if(result.error) { alert(result.error); return; }
+    processBulkData(result.rows);
+  };
+  reader.readAsText(file);
+  inp.value = '';
+}
+
+function processBulkData(rows) {
+  // Group rows by week label
+  bulkWeekMap = {};
+  rows.forEach(function(r) {
+    var od = r['Open Date'];
+    if(!od) return;
+    var wk = getWk(od);
+    if(!bulkWeekMap[wk]) bulkWeekMap[wk] = [];
+    bulkWeekMap[wk].push(r);
+  });
+
+  var weeks = Object.keys(bulkWeekMap).sort(function(a,b) {
+    // Sort T-1..T-4 first, then W1..W52
+    function rank(w) {
+      if(w.startsWith('T-')) return parseInt(w.slice(2)) - 100;
+      return parseInt(w.slice(1));
+    }
+    return rank(a) - rank(b);
+  });
+
+  // Calculate summaries
+  bulkSummaries = weeks.map(function(wk) {
+    return calcTZSummary(bulkWeekMap[wk], wk);
+  });
+
+  // Summary cards
+  var totalTrades = rows.length;
+  var totalWeeks = weeks.length;
+  var totalPnl = bulkSummaries.reduce(function(s,x){ return s + parseFloat(x.total_net_pnl||0); }, 0);
+  var hits = bulkSummaries.filter(function(x){ return parseFloat(x.win_rate||0) >= 50; }).length;
+
+  document.getElementById('bulkSummaryCards').innerHTML = [
+    ['Total Trades', totalTrades, 'var(--accent)'],
+    ['Weeks Detected', totalWeeks, 'var(--accent)'],
+    ['Total Net P&L', (totalPnl>=0?'+':'')+f0(totalPnl), totalPnl>=0?'var(--green)':'var(--red)'],
+    ['Win Rate >50%', hits+' of '+totalWeeks+' wks', 'var(--teal)']
+  ].map(function(s) {
+    return '<div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px">' +
+      '<div style="font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:4px">'+s[0]+'</div>' +
+      '<div style="font-family:var(--fm);font-size:26px;font-weight:600;color:'+s[2]+'">'+s[1]+'</div></div>';
+  }).join('');
+
+  // Week-by-week preview table
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:18px">' +
+    '<thead><tr style="background:var(--surface2);border-bottom:2px solid var(--accent)">' +
+    '<th style="padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;color:var(--accent)">Week</th>' +
+    '<th style="padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;color:var(--accent)">Trades</th>' +
+    '<th style="padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;color:var(--accent)">W/L</th>' +
+    '<th style="padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;color:var(--accent)">Win%</th>' +
+    '<th style="padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;color:var(--accent)">Net P&L</th>' +
+    '<th style="padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;color:var(--accent)">Avg RR</th>' +
+    '<th style="padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;color:var(--accent)">Pips</th>' +
+    '<th style="padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;color:var(--accent)">Date Range</th>' +
+    '<th style="padding:7px 10px;text-align:left;font-size:15px;text-transform:uppercase;color:var(--accent)">Status</th>' +
+    '</tr></thead><tbody>';
+
+  bulkSummaries.forEach(function(s, i) {
+    var pnl = parseFloat(s.total_net_pnl||0);
+    var alreadyLogged = !!trackerActuals[s.week];
+    html += '<tr style="border-bottom:1px solid var(--border);background:'+(i%2===0?'var(--surface2)':'transparent')+'">' +
+      '<td style="padding:7px 10px;font-family:var(--fm);font-weight:700;color:var(--accent)">'+s.week+'</td>' +
+      '<td style="padding:7px 10px">'+s.total_trades+'</td>' +
+      '<td style="padding:7px 10px">'+s.wins+'W / '+s.losses+'L</td>' +
+      '<td style="padding:7px 10px;color:'+(parseFloat(s.win_rate||0)>=50?'var(--green)':'var(--red)')+'">'+( s.win_rate||'—')+'%</td>' +
+      '<td style="padding:7px 10px;font-family:var(--fm);font-weight:700;color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+(pnl>=0?'+':'')+f0(pnl)+'</td>' +
+      '<td style="padding:7px 10px;font-family:var(--fm)">'+( s.avg_rr||'—')+'</td>' +
+      '<td style="padding:7px 10px;font-family:var(--fm)">'+( s.total_pips||'—')+'</td>' +
+      '<td style="padding:7px 10px;font-size:16px;color:var(--text3)">'+s.date_from+' → '+s.date_to+'</td>' +
+      '<td style="padding:7px 10px">'+(alreadyLogged?
+        '<span class="badge badge-amber">Will overwrite</span>':
+        '<span class="badge badge-green">New</span>')+
+      '</td>' +
+    '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('bulkWeekTable').innerHTML = html;
+  document.getElementById('bulkPreview').style.display = 'block';
+  document.getElementById('bulkDone').style.display = 'none';
+  document.getElementById('bulkSaveBtn').textContent = '✓ Save ' + bulkSummaries.length + ' Weeks to Sheets';
+}
+
+async function saveBulkImport() {
+  if(!scriptUrl) { toast('Configure Apps Script URL in Settings first', 3000); return; }
+  var btn = document.getElementById('bulkSaveBtn');
+  var msg = document.getElementById('bulkSaveMsg');
+  btn.disabled = true;
+  var total = bulkSummaries.length;
+
+  for(var i = 0; i < total; i++) {
+    var s = bulkSummaries[i];
+    btn.textContent = 'Saving week ' + (i+1) + ' of ' + total + '…';
+    msg.style.color = 'var(--text3)';
+    msg.textContent = s.week + '…';
+
+    // Save raw trades
+    var weekRows = bulkWeekMap[s.week];
+    syncToSheet('appendRawTrades', {
+      week: s.week,
+      cols: TZ_COLS,
+      rows: weekRows.map(function(r){ return TZ_COLS.map(function(c){ return r[c]||''; }); })
+    });
+
+    // Save summary
+    syncToSheet('upsertSummary', s);
+
+    // Update local tracker actuals
+    var pnl = parseFloat(s.total_net_pnl||0);
+    var wr = parseFloat(s.win_rate||0);
+    if(!trackerActuals[s.week]) {
+      // Only pre-populate if not already manually logged
+      trackerActuals[s.week] = {
+        startBal: null,
+        pnl: pnl,
+        endBal: null,
+        ret: null,
+        met: wr >= 50 ? 'Yes' : 'No',
+        fromTZ: true   // flag — needs balance data
+      };
+    }
+
+    // Small delay to avoid overwhelming Apps Script
+    await new Promise(function(r){ setTimeout(r, 300); });
+  }
+
+  saveTrackerActuals();
+  msg.style.color = 'var(--green)';
+  msg.textContent = '✅ All ' + total + ' weeks saved';
+
+  setTimeout(function() {
+    document.getElementById('bulkPreview').style.display = 'none';
+    document.getElementById('bulkDone').style.display = 'block';
+    document.getElementById('bulkDoneMsg').textContent =
+      '✅ ' + total + ' weeks of Tradezella data saved to Google Sheets. ' +
+      'Go to the Plan Tracker tab to add your closing balances for each week.';
+    renderTracker();
+    renderTrackerSummary();
+    toast(total + ' weeks imported', 2500);
+  }, 800);
+}
+
+function cancelBulkImport() {
+  bulkWeekMap = {};
+  bulkSummaries = [];
+  resetBulkImport();
+}
+
+function resetBulkImport() {
+  bulkWeekMap = {};
+  bulkSummaries = [];
+  document.getElementById('bulkPreview').style.display = 'none';
+  document.getElementById('bulkDone').style.display = 'none';
+  document.getElementById('bulkSaveBtn').disabled = false;
+}
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
+<!-- ─── PLAN TRACKER TAB INJECTION ─────────────────────────────────────────── -->
+<script>
+// ── PLAN DATA (from Sheet2) ──────────────────────────────────────────────────
+var PLAN_PHASES = [
+  {
+    id:'trial', label:'Trial Period', shortLabel:'Trial',
+    desc:'4-week trial at $10,000 to validate execution before committing full capital.',
+    color:'#7a7872', months:[], checkpointAfter:false,
+    weeks:[
+      {wk:'T-1',month:'Trial',date:'2026-02-02',endDate:'2026-02-07',startCap:10000,  tgtPct:0.025,tgtAmt:250,    injection:0, planEndBal:10250},
+      {wk:'T-2',month:'Trial',date:'2026-02-09',endDate:'2026-02-14',startCap:10000,  tgtPct:0.025,tgtAmt:250,    injection:0, planEndBal:10250},
+      {wk:'T-3',month:'Trial',date:'2026-02-16',endDate:'2026-02-21',startCap:10000,  tgtPct:0.025,tgtAmt:250,    injection:0, planEndBal:10250},
+      {wk:'T-4',month:'Trial',date:'2026-02-23',endDate:'2026-02-28',startCap:10000,  tgtPct:0.025,tgtAmt:250,    injection:0, planEndBal:10250},
+    ]
+  },
+  {
+    id:'phase1', label:'Phase 1 – Validation Mode', shortLabel:'Phase 1',
+    desc:'Starting Capital: $20,000 · Weekly return: 1.5–2.5% · Max DD: ≤5% · Risk/trade: 0.25–0.4% · Expected end capital: $24k–$26k. Pass gate: positive expectancy over ≥50 trades, no DD breach, no rule violations.',
+    color:'#1a6b48', checkpointAfter:true,
+    weeks:[
+      {wk:'W1', month:'Month 1',date:'2026-03-02',endDate:'2026-03-07',startCap:20000,      tgtPct:0.025,tgtAmt:500,     injection:0, planEndBal:20500},
+      {wk:'W2', month:'Month 1',date:'2026-03-09',endDate:'2026-03-14',startCap:20500,      tgtPct:0.025,tgtAmt:512.5,   injection:0, planEndBal:21012.5},
+      {wk:'W3', month:'Month 1',date:'2026-03-16',endDate:'2026-03-21',startCap:21012.5,    tgtPct:0.025,tgtAmt:525.31,  injection:0, planEndBal:21537.81},
+      {wk:'W4', month:'Month 1',date:'2026-03-23',endDate:'2026-03-28',startCap:21537.81,   tgtPct:0.025,tgtAmt:538.45,  injection:0, planEndBal:22076.26},
+      {wk:'W5', month:'Month 1',date:'2026-03-30',endDate:'2026-04-04',startCap:22076.26,   tgtPct:0.025,tgtAmt:551.91,  injection:0, planEndBal:22628.16},
+      {wk:'W6', month:'Month 2',date:'2026-04-06',endDate:'2026-04-11',startCap:22628.16,   tgtPct:0.025,tgtAmt:565.70,  injection:0, planEndBal:23193.87},
+      {wk:'W7', month:'Month 2',date:'2026-04-13',endDate:'2026-04-18',startCap:23193.87,   tgtPct:0.025,tgtAmt:579.85,  injection:0, planEndBal:23773.72},
+      {wk:'W8', month:'Month 2',date:'2026-04-20',endDate:'2026-04-25',startCap:23773.72,   tgtPct:0.025,tgtAmt:594.34,  injection:0, planEndBal:24368.06},
+      {wk:'W9', month:'Month 2',date:'2026-04-27',endDate:'2026-05-02',startCap:24368.06,   tgtPct:0.025,tgtAmt:609.20,  injection:0, planEndBal:24977.26},
+      {wk:'W10',month:'Month 3',date:'2026-05-04',endDate:'2026-05-09',startCap:24977.26,   tgtPct:0.025,tgtAmt:624.43,  injection:0, planEndBal:25601.69},
+      {wk:'W11',month:'Month 3',date:'2026-05-11',endDate:'2026-05-16',startCap:25601.69,   tgtPct:0.025,tgtAmt:640.04,  injection:0, planEndBal:26241.73},
+      {wk:'W12',month:'Month 3',date:'2026-05-18',endDate:'2026-05-23',startCap:26241.73,   tgtPct:0.025,tgtAmt:656.04,  injection:0, planEndBal:26897.78},
+      {wk:'W13',month:'Month 3',date:'2026-05-25',endDate:'2026-05-30',startCap:26897.78,   tgtPct:0.025,tgtAmt:672.44,  injection:0, planEndBal:27570.22},
+    ]
+  },
+  {
+    id:'phase2', label:'Phase 2 – Capital Step-Up', shortLabel:'Phase 2',
+    desc:'Capital injected to ~$50,000. Weekly return target: 2–2.5% · Risk/trade: ≤0.5% · 100% reinvestment. Expected: $50k → $80k. Monthly profit: $1,000–$1,900/week.',
+    color:'#4c1d95', checkpointAfter:true,
+    weeks:[
+      {wk:'W14',month:'Month 4',date:'2026-06-01',endDate:'2026-06-06',startCap:27570.22,   tgtPct:0.025,tgtAmt:689.26,    injection:30000, planEndBal:58259.48},
+      {wk:'W15',month:'Month 4',date:'2026-06-15',endDate:'2026-06-20',startCap:58259.48,   tgtPct:0.025,tgtAmt:1456.49,   injection:0, planEndBal:59715.96},
+      {wk:'W16',month:'Month 4',date:'2026-06-22',endDate:'2026-06-27',startCap:59715.96,   tgtPct:0.025,tgtAmt:1492.90,   injection:0, planEndBal:61208.86},
+      {wk:'W17',month:'Month 4',date:'2026-06-29',endDate:'2026-07-04',startCap:61208.86,   tgtPct:0.025,tgtAmt:1530.22,   injection:0, planEndBal:62739.08},
+      {wk:'W18',month:'Month 4',date:'2026-07-06',endDate:'2026-07-11',startCap:62739.08,   tgtPct:0.025,tgtAmt:1568.48,   injection:0, planEndBal:64307.56},
+      {wk:'W19',month:'Month 5',date:'2026-07-13',endDate:'2026-07-18',startCap:64307.56,   tgtPct:0.025,tgtAmt:1607.69,   injection:0, planEndBal:65915.25},
+      {wk:'W20',month:'Month 5',date:'2026-07-20',endDate:'2026-07-25',startCap:65915.25,   tgtPct:0.025,tgtAmt:1647.88,   injection:0, planEndBal:67563.13},
+      {wk:'W21',month:'Month 5',date:'2026-07-27',endDate:'2026-08-01',startCap:67563.13,   tgtPct:0.025,tgtAmt:1689.08,   injection:0, planEndBal:69252.21},
+      {wk:'W22',month:'Month 5',date:'2026-08-03',endDate:'2026-08-08',startCap:69252.21,   tgtPct:0.025,tgtAmt:1731.31,   injection:0, planEndBal:70983.51},
+      {wk:'W23',month:'Month 6',date:'2026-08-10',endDate:'2026-08-15',startCap:70983.51,   tgtPct:0.025,tgtAmt:1774.59,   injection:0, planEndBal:72758.10},
+      {wk:'W24',month:'Month 6',date:'2026-08-17',endDate:'2026-08-22',startCap:72758.10,   tgtPct:0.025,tgtAmt:1818.95,   injection:0, planEndBal:74577.06},
+      {wk:'W25',month:'Month 6',date:'2026-08-24',endDate:'2026-08-29',startCap:74577.06,   tgtPct:0.025,tgtAmt:1864.43,   injection:0, planEndBal:76441.48},
+      {wk:'W26',month:'Month 6',date:'2026-08-31',endDate:'2026-09-05',startCap:76441.48,   tgtPct:0.025,tgtAmt:1911.04,   injection:0, planEndBal:78352.52},
+      {wk:'W27',month:'Month 6',date:'2026-09-06',endDate:'2026-09-11',startCap:78352.52,   tgtPct:0.025,tgtAmt:1958.81,   injection:0, planEndBal:80311.33},
+    ]
+  },
+  {
+    id:'phase3', label:'Phase 3 – Compounding Acceleration', shortLabel:'Phase 3',
+    desc:'Same lane as $50k strategy with more confidence. Weekly return: 2.5% · Trade quality > frequency · No withdrawals yet. Expected capital: $110k–$130k, weekly profit: $2.7k–$3.2k.',
+    color:'#92400e', checkpointAfter:true,
+    weeks:[
+      {wk:'W28',month:'Month 7', date:'2026-09-07',endDate:'2026-09-12',startCap:80311.33,  tgtPct:0.025,tgtAmt:2007.78,  injection:0, planEndBal:82319.12},
+      {wk:'W29',month:'Month 7', date:'2026-09-14',endDate:'2026-09-19',startCap:82319.12,  tgtPct:0.025,tgtAmt:2057.98,  injection:0, planEndBal:84377.09},
+      {wk:'W30',month:'Month 7', date:'2026-09-21',endDate:'2026-09-26',startCap:84377.09,  tgtPct:0.025,tgtAmt:2109.43,  injection:0, planEndBal:86486.52},
+      {wk:'W31',month:'Month 7', date:'2026-09-28',endDate:'2026-10-03',startCap:86486.52,  tgtPct:0.025,tgtAmt:2162.16,  injection:0, planEndBal:88648.68},
+      {wk:'W32',month:'Month 8', date:'2026-10-05',endDate:'2026-10-10',startCap:88648.68,  tgtPct:0.025,tgtAmt:2216.22,  injection:0, planEndBal:90864.90},
+      {wk:'W33',month:'Month 8', date:'2026-10-12',endDate:'2026-10-17',startCap:90864.90,  tgtPct:0.025,tgtAmt:2271.62,  injection:0, planEndBal:93136.52},
+      {wk:'W34',month:'Month 8', date:'2026-10-19',endDate:'2026-10-24',startCap:93136.52,  tgtPct:0.025,tgtAmt:2328.41,  injection:0, planEndBal:95464.94},
+      {wk:'W35',month:'Month 8', date:'2026-10-26',endDate:'2026-10-31',startCap:95464.94,  tgtPct:0.025,tgtAmt:2386.62,  injection:0, planEndBal:97851.56},
+      {wk:'W36',month:'Month 9', date:'2026-11-02',endDate:'2026-11-07',startCap:97851.56,  tgtPct:0.025,tgtAmt:2446.29,  injection:0, planEndBal:100297.85},
+      {wk:'W37',month:'Month 9', date:'2026-11-09',endDate:'2026-11-14',startCap:100297.85, tgtPct:0.025,tgtAmt:2507.45,  injection:0, planEndBal:102805.29},
+      {wk:'W38',month:'Month 9', date:'2026-11-16',endDate:'2026-11-21',startCap:102805.29, tgtPct:0.025,tgtAmt:2570.13,  injection:0, planEndBal:105375.43},
+      {wk:'W39',month:'Month 9', date:'2026-11-23',endDate:'2026-11-28',startCap:105375.43, tgtPct:0.025,tgtAmt:2634.39,  injection:0, planEndBal:108009.81},
+      {wk:'W40',month:'Month 9', date:'2026-11-30',endDate:'2026-12-05',startCap:108009.81, tgtPct:0.025,tgtAmt:2700.25,  injection:0, planEndBal:110710.06},
+    ]
+  },
+  {
+    id:'phase4', label:'Phase 4 – Goal Zone', shortLabel:'Phase 4',
+    desc:'Capital range: $160k–$190k. At 2.5%: $4k–$4.75k/wk. At 3.0%: $4.8k–$5.7k/wk. $5k/week achievable if averaging 2.75–3% or delaying withdrawals slightly. Capital injection of $20k at Week 41.',
+    color:'#1e3a8a', checkpointAfter:false,
+    weeks:[
+      {wk:'W41',month:'Month 10',date:'2026-12-07',endDate:'2026-12-12',startCap:110710.06, tgtPct:0.025,tgtAmt:2767.75,  injection:20000, planEndBal:133477.81},
+      {wk:'W42',month:'Month 10',date:'2026-12-14',endDate:'2026-12-19',startCap:133477.81, tgtPct:0.025,tgtAmt:3336.95,  injection:0, planEndBal:136814.75},
+      {wk:'W43',month:'Month 10',date:'2026-12-21',endDate:'2026-12-26',startCap:136814.75, tgtPct:0.025,tgtAmt:3420.37,  injection:0, planEndBal:140235.12},
+      {wk:'W44',month:'Month 10',date:'2026-12-28',endDate:'2027-01-02',startCap:140235.12, tgtPct:0.025,tgtAmt:3505.88,  injection:0, planEndBal:143741.00},
+      {wk:'W45',month:'Month 11',date:'2027-01-05',endDate:'2027-01-10',startCap:143741.00, tgtPct:0.025,tgtAmt:3593.53,  injection:0, planEndBal:147334.53},
+      {wk:'W46',month:'Month 11',date:'2027-01-12',endDate:'2027-01-17',startCap:147334.53, tgtPct:0.025,tgtAmt:3683.36,  injection:0, planEndBal:151017.89},
+      {wk:'W47',month:'Month 11',date:'2027-01-19',endDate:'2027-01-24',startCap:151017.89, tgtPct:0.025,tgtAmt:3775.45,  injection:0, planEndBal:154793.34},
+      {wk:'W48',month:'Month 11',date:'2027-01-26',endDate:'2027-01-31',startCap:154793.34, tgtPct:0.025,tgtAmt:3869.83,  injection:0, planEndBal:158663.17},
+      {wk:'W49',month:'Month 12',date:'2027-02-02',endDate:'2027-02-07',startCap:158663.17, tgtPct:0.025,tgtAmt:3966.58,  injection:0, planEndBal:162629.75},
+      {wk:'W50',month:'Month 12',date:'2027-02-09',endDate:'2027-02-14',startCap:162629.75, tgtPct:0.025,tgtAmt:4065.74,  injection:0, planEndBal:166695.49},
+      {wk:'W51',month:'Month 12',date:'2027-02-16',endDate:'2027-02-21',startCap:166695.49, tgtPct:0.025,tgtAmt:4167.39,  injection:0, planEndBal:170862.88},
+      {wk:'W52',month:'Month 12',date:'2027-02-23',endDate:'2027-02-28',startCap:170862.88, tgtPct:0.025,tgtAmt:4271.57,  injection:0, planEndBal:175134.45},
+    ]
+  }
+];
+
+// Actuals from spreadsheet (pre-loaded)
+var PLAN_ACTUALS_SEED = {
+  // Trial Period (Feb 2026) — MT5 verified Mon-Sat weeks
+  'T-1':{startBal:9581.18,  pnl:-200.08, endBal:9352.38,  ret:-2.09, met:'No'},
+  'T-2':{startBal:9352.38,  pnl: 335.91, endBal:9675.74,  ret: 3.59, met:'Yes'},
+  'T-3':{startBal:9675.74,  pnl: -41.13, endBal:9613.39,  ret:-0.43, met:'No'},
+  'T-4':{startBal:9613.39,  pnl:-394.03, endBal:9189.56,  ret:-4.10, met:'No'},
+  // Phase 1 (Mar–Jun 2026) — MT5 verified Mon-Sat weeks
+  'W1': {startBal:9189.56,  pnl: 170.44, endBal:9352.21,  ret: 1.85, met:'No'},
+  'W2': {startBal:9352.21,  pnl: 625.17, endBal:21959.02, ret: 6.68, met:'Yes'},
+  'W3': {startBal:21959.02, pnl: 706.77, endBal:22629.85, ret: 3.22, met:'Yes'},
+  'W4': {startBal:22629.85, pnl:-427.58, endBal:22170.68, ret:-1.89, met:'No'},
+  'W5': {startBal:22170.68, pnl: -68.71, endBal:22082.99, ret:-0.31, met:'No'},
+  'W6': {startBal:22082.99, pnl: 200.21, endBal:22264.28, ret: 0.91, met:'No'},
+  'W7': {startBal:22264.28, pnl:1104.46, endBal:23351.23, ret: 4.96, met:'Yes'},
+  'W8': {startBal:23351.23, pnl: -38.24, endBal:23290.62, ret:-0.16, met:'No'},
+  'W9': {startBal:23290.62, pnl:-184.40, endBal:23085.02, ret:-0.79, met:'No'},
+  'W10':{startBal:23085.02, pnl:-201.90, endBal:22869.64, ret:-0.87, met:'No'},
+  'W11':{startBal:22869.64, pnl:-512.09, endBal:22354.16, ret:-2.24, met:'No'},
+  'W12':{startBal:22354.16, pnl: -77.95, endBal:22259.86, ret:-0.35, met:'No'},
+  'W13':{startBal:22259.86, pnl: 213.73, endBal:22454.01, ret: 0.96, met:'No'},
+  'W14':{startBal:22454.01, pnl:-221.61, endBal:22222.24, ret:-0.99, met:'No'},
+};
+
+// ── TRACKER STATE ────────────────────────────────────────────────────────────
+var trackerActuals = Object.assign({}, PLAN_ACTUALS_SEED, ld('fx_tracker_actuals', {}));
+var collapsedPhases = ld('fx_tracker_collapsed', {});
+var highlightMode = ld('fx_tracker_highlight', true);
+var editingWeek = null;
+
+function saveTrackerActuals() { sv('fx_tracker_actuals', trackerActuals); }
+function saveCollapsed() { sv('fx_tracker_collapsed', collapsedPhases); }
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function fmtDate(d) {
+  if(!d) return '—';
+  var dt = new Date(d+'T12:00:00');
+  return dt.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'2-digit'});
+}
+function f2(n) { return n==null?'—':'$'+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function f0(n) { return n==null?'—':'$'+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
+function fpct2(n) { return n==null?'—':(n>=0?'+':'')+n.toFixed(2)+'%'; }
+function varColor(v) { return v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'; }
+function retColor(r) { return r==null?'var(--text3)':r>=2.5?'var(--green)':r>=0?'var(--amber)':'var(--red)'; }
+
+// ── RENDER TRACKER ───────────────────────────────────────────────────────────
+
+// ─── CARRY-FORWARD BALANCE ───────────────────────────────────────────────────
+// Returns {startBal, pnl} pre-filled values for a week's edit form
+// startBal = previous week's closing balance (if logged)
+// pnl      = from Tradezella import (if fromTZ flag set)
+function getCarryForward(wk) {
+  // Build flat ordered list of all week keys
+  var allWeeks = [];
+  PLAN_PHASES.forEach(function(ph) {
+    ph.weeks.forEach(function(w) { allWeeks.push(w.wk); });
+  });
+
+  var idx = allWeeks.indexOf(wk);
+  var result = { startBal: null, pnl: null, endBal: null };
+
+  // Start balance = previous week's closing balance
+  if(idx > 0) {
+    var prevWk = allWeeks[idx - 1];
+    var prevAct = trackerActuals[prevWk];
+    if(prevAct && prevAct.endBal != null) {
+      result.startBal = prevAct.endBal;
+    }
+  }
+
+  // P&L from Tradezella import (fromTZ flag)
+  var thisAct = trackerActuals[wk];
+  if(thisAct && thisAct.pnl != null) {
+    result.pnl = thisAct.pnl;
+    // If we have start + pnl, calculate end balance
+    if(result.startBal != null) {
+      result.endBal = parseFloat((result.startBal + thisAct.pnl).toFixed(2));
+    }
+  }
+
+  return result;
+}
+
+function renderTracker() {
+  var container = document.getElementById('trackerBody');
+  if(!container) return;
+  var html = '';
+
+  PLAN_PHASES.forEach(function(phase) {
+    var isCollapsed = collapsedPhases[phase.id];
+
+    // Phase header row
+    html += '<tr class="phase-hdr-row" onclick="togglePhase(\''+phase.id+'\')" style="cursor:pointer;background:'+phase.color+'18;border-left:4px solid '+phase.color+'">' +
+      '<td colspan="15" style="padding:10px 14px">' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span style="font-size:24px;transition:transform .2s;display:inline-block;transform:rotate('+(isCollapsed?'-90':'0')+'deg)" id="arrow-'+phase.id+'">▾</span>' +
+          '<div>' +
+            '<div style="font-size:20px;font-weight:700;color:'+phase.color+'">'+phase.label+'</div>' +
+            '<div style="font-size:16px;color:var(--text3);margin-top:2px;max-width:900px;line-height:1.5">'+phase.desc+'</div>' +
+          '</div>' +
+        '</div>' +
+      '</td>' +
+    '</tr>';
+
+    if(isCollapsed) return;
+
+    // Track month grouping
+    var lastMonth = '';
+
+    phase.weeks.forEach(function(w) {
+      var act = trackerActuals[w.wk];
+      var isEditing = editingWeek === w.wk;
+
+      // Month separator row
+      if(w.month !== lastMonth && w.month !== 'Trial') {
+        lastMonth = w.month;
+        html += '<tr style="background:var(--surface2)">' +
+          '<td colspan="14" style="padding:4px 14px;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">'+w.month+'</td>' +
+        '</tr>';
+      }
+
+      // Row highlight
+      var rowBg = '';
+      if(highlightMode && act && act.met) {
+        rowBg = act.met === 'Yes' ? 'background:var(--green-bg)' : (act.pnl < 0 ? 'background:var(--red-bg)' : 'background:var(--amber-bg)');
+      }
+
+      // Variance calc
+      var varAmt = (act && act.endBal != null) ? act.endBal - w.planEndBal : null;
+      var varPct = (varAmt != null && w.planEndBal) ? (varAmt / w.planEndBal * 100) : null;
+
+      if(isEditing) {
+        // Edit row — spans full width
+        html += '<tr id="edit-row-'+w.wk+'" style="background:var(--accent-lt)">' +
+          '<td colspan="15" style="padding:14px 16px">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+              '<span style="font-size:18px;font-weight:700;color:var(--accent)">'+w.wk+' — '+w.month+'</span> <span style="font-size:15px;color:var(--text3)">'+fmtDate(w.date)+' → '+(w.endDate?fmtDate(w.endDate):'')+'</span>' +
+              '<span style="font-size:16px;color:var(--text3)">Plan: '+f0(w.planEndBal)+' end balance · Target profit: '+f0(w.tgtAmt)+(w.injection?'  ·  💉 Injection: '+f0(w.injection):' ')+'</span>' +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:repeat(5,1fr) auto;gap:10px;align-items:end">' +
+              (function(){
+                var cf = getCarryForward(w.wk);
+                var sbVal = act&&act.startBal!=null ? act.startBal : (cf.startBal!=null ? cf.startBal : '');
+                var pnlVal = act&&act.pnl!=null ? act.pnl : (cf.pnl!=null ? cf.pnl : '');
+                var ebVal = act&&act.endBal!=null ? act.endBal : (cf.endBal!=null ? cf.endBal : '');
+                var sbHint = (act&&act.startBal!=null) ? '' : (cf.startBal!=null ? ' style="border-color:var(--teal)"' : '');
+                var ebHint = (act&&act.endBal!=null) ? '' : (cf.endBal!=null ? ' style="border-color:var(--teal)"' : '');
+                return '<div class="field"><label>Starting Balance ($) '+(sbVal&&!act?' <span style=\'color:var(--teal);font-size:12px\'>(carried)</span>':' ')+'</label><input id="ei-startBal" type="number" step="0.01" value="'+sbVal+'" placeholder=""'+sbHint+'></div>' +
+                  '<div class="field"><label>Net P&L ($)'+(pnlVal&&!act?' <span style=\'color:var(--teal);font-size:12px\'>(from TZ)</span>':'')+'</label><input id="ei-pnl" type="number" step="0.01" value="'+pnlVal+'" placeholder="" oninput="calcEditReturn()"></div>' +
+                  '<div class="field"><label>Closing Balance ($)'+(ebVal&&!act?' <span style=\'color:var(--teal);font-size:12px\'>(auto)</span>':'')+'</label><input id="ei-endBal" type="number" step="0.01" value="'+ebVal+'" placeholder="" oninput="calcEditReturn()"'+ebHint+'></div>';
+              })() +
+              '<div class="field"><label>Return %</label><input id="ei-ret" type="number" step="0.001" value="'+(act&&act.ret!=null?act.ret:'')+'" placeholder="auto-calc"></div>' +
+              '<div class="field"><label>Met Target</label><select id="ei-met"><option value="">—</option><option value="Yes"'+(act&&act.met==='Yes'?' selected':'')+'>Yes</option><option value="No"'+(act&&act.met==='No'?' selected':'')+'>No</option></select></div>' +
+              '<div style="display:flex;gap:8px;padding-bottom:1px">' +
+                '<button class="btn btn-primary btn-sm" onclick="saveEditRow(\''+w.wk+'\')">Save</button>' +
+                '<button class="btn btn-outline btn-sm" onclick="cancelEdit()">Cancel</button>' +
+                '<button class="btn btn-sm" onclick="clearActual(\''+w.wk+'\')" style="background:transparent;border:1.5px solid var(--red);color:var(--red);padding:5px 10px;border-radius:var(--r);font-size:16px;font-weight:700;cursor:pointer">Clear</button>' +
+              '</div>' +
+            '</div>' +
+            '<div id="edit-ret-preview" style="margin-top:8px;font-size:18px;font-weight:600"></div>' +
+          '</td>' +
+        '</tr>';
+      } else {
+        // Normal data row
+        html += '<tr class="week-row" onclick="openEdit(\''+w.wk+'\')" style="cursor:pointer;'+rowBg+'" title="Click to log actuals">';
+
+        // Week label
+        html += '<td style="font-family:var(--fm);font-weight:700;color:var(--accent);white-space:nowrap;padding:8px 8px 8px 14px">'+w.wk+'</td>';
+
+        // Date (Mon start + Sat end)
+        html += '<td style="color:var(--text3);font-size:16px;white-space:nowrap">'+fmtDate(w.date)+'</td>';
+        html += '<td style="color:var(--text3);font-size:16px;white-space:nowrap">'+(w.endDate?fmtDate(w.endDate):'')+'</td>';
+
+        // ── PLAN COLUMNS ──
+        html += '<td style="font-family:var(--fm);font-size:18px;color:var(--text2)">'+f0(w.startCap)+'</td>';
+        html += '<td style="font-family:var(--fm);font-size:18px;color:var(--accent)">'+(w.tgtPct*100).toFixed(1)+'%</td>';
+        html += '<td style="font-family:var(--fm);font-size:18px;color:var(--text2)">'+f0(w.tgtAmt)+'</td>';
+        html += '<td style="font-family:var(--fm);font-size:18px">'+(w.injection?'<span style="color:var(--blue);font-weight:700">+'+f0(w.injection)+'</span>':'<span style="color:var(--text3)">—</span>')+'</td>';
+        html += '<td style="font-family:var(--fm);font-size:18px;font-weight:600;color:var(--text)">'+f0(w.planEndBal)+'</td>';
+
+        // DIVIDER
+        html += '<td style="width:8px;background:var(--surface2);border-left:2px solid var(--border2);border-right:2px solid var(--border2)"></td>';
+
+        // ── ACTUAL COLUMNS ──
+        if(act && act.endBal != null) {
+          html += '<td style="font-family:var(--fm);font-size:18px;color:var(--text2)">'+f0(act.startBal)+'</td>';
+          var pnlCol = act.pnl >= 0 ? 'var(--green)' : 'var(--red)';
+          html += '<td style="font-family:var(--fm);font-size:18px;font-weight:700;color:'+pnlCol+'">'+(act.pnl>=0?'+':'')+f2(act.pnl)+'</td>';
+          html += '<td style="font-family:var(--fm);font-size:18px;font-weight:600;color:var(--text)">'+f0(act.endBal)+'</td>';
+          html += '<td style="font-family:var(--fm);font-size:18px;font-weight:700;color:'+retColor(act.ret)+'">'+fpct2(act.ret)+'</td>';
+          var metBadge = act.met==='Yes' ? '<span class="badge badge-green">✓ Yes</span>' : (act.pnl<0?'<span class="badge badge-red">✗ No</span>':'<span class="badge badge-amber">✗ No</span>');
+          html += '<td>'+metBadge+'</td>';
+
+          // VARIANCE
+          html += '<td style="text-align:right;padding-right:14px">' +
+            '<div style="font-family:var(--fm);font-size:16px;font-weight:700;color:'+varColor(varAmt)+'">'+(varAmt>=0?'+':'')+f0(varAmt)+'</div>' +
+            '<div style="font-size:15px;color:'+varColor(varPct)+'">'+(varPct>=0?'+':'')+varPct.toFixed(1)+'%</div>' +
+          '</td>';
+        } else {
+          var cf = getCarryForward(w.wk);
+          var hint = '';
+          if(cf.pnl != null) hint = ' · <span style="color:var(--teal)">P&L from TZ: '+(cf.pnl>=0?'+':'')+f0(cf.pnl)+'</span>';
+          if(cf.endBal != null) hint += ' · <span style="color:var(--teal)">Est. close: '+f0(cf.endBal)+'</span>';
+          html += '<td colspan="5" style="color:var(--text3);font-size:16px;padding-left:10px">— not yet logged — <span style="color:var(--accent)">click to enter</span>'+hint+'</td>';
+          html += '<td></td>';
+        }
+
+        html += '</tr>';
+      }
+
+      // Phase checkpoint banner
+      if(phase.checkpointAfter && w === phase.weeks[phase.weeks.length-1]) {
+        html += '<tr style="background:var(--amber-bg)">' +
+          '<td colspan="15" style="padding:8px 14px;font-size:16px;font-weight:700;color:var(--amber);letter-spacing:.04em">'+
+            '⚑ PHASE CHECKPOINT — Review gate criteria before proceeding to next phase' +
+          '</td>' +
+        '</tr>';
+      }
+    });
+  });
+
+  container.innerHTML = html;
+
+  // Re-focus edit input if editing
+  if(editingWeek) {
+    var inp = document.getElementById('ei-startBal');
+    if(inp) inp.focus();
+  }
+}
+
+function calcEditReturn() {
+  var startEl = document.getElementById('ei-startBal');
+  var pnlEl = document.getElementById('ei-pnl');
+  var endEl = document.getElementById('ei-endBal');
+  var retEl = document.getElementById('ei-ret');
+  var prev = document.getElementById('edit-ret-preview');
+
+  var s = parseFloat(startEl && startEl.value);
+  var e = parseFloat(endEl && endEl.value);
+  var p = parseFloat(pnlEl && pnlEl.value);
+
+  if(s && e && !retEl.value) {
+    var r = ((e - s) / s * 100);
+    retEl.value = r.toFixed(3);
+  }
+  if(e != null && !isNaN(e) && s && !isNaN(s)) {
+    var ret = ((e-s)/s*100);
+    var col = ret>=2.5?'var(--green)':ret>=0?'var(--amber)':'var(--red)';
+    var icon = ret>=2.5?'✅ Target met':ret>=0?'⚠️ Below target':'❌ Loss week';
+    prev.style.color = col;
+    prev.textContent = ret.toFixed(2)+'% — '+icon;
+  }
+}
+
+function openEdit(wk) {
+  if(editingWeek === wk) { editingWeek = null; } else { editingWeek = wk; }
+  renderTracker();
+  // Trigger return calc after render so preview shows if values pre-filled
+  setTimeout(function(){ calcEditReturn(); }, 50);
+}
+
+function cancelEdit() { editingWeek = null; renderTracker(); }
+
+function saveEditRow(wk) {
+  var startBal = parseFloat(document.getElementById('ei-startBal').value) || null;
+  var pnl      = parseFloat(document.getElementById('ei-pnl').value);
+  var endBal   = parseFloat(document.getElementById('ei-endBal').value) || null;
+  var ret      = parseFloat(document.getElementById('ei-ret').value);
+  var met      = document.getElementById('ei-met').value;
+
+  if(endBal == null) { alert('Closing Balance is required'); return; }
+
+  // Auto-calc return if not entered
+  if(isNaN(ret) && startBal && endBal) {
+    ret = parseFloat(((endBal - startBal) / startBal * 100).toFixed(3));
+  }
+  // Auto-calc pnl
+  if(isNaN(pnl) && startBal && endBal) {
+    pnl = parseFloat((endBal - startBal).toFixed(2));
+  }
+  // Auto-set met target
+  if(!met) { met = ret >= 2.5 ? 'Yes' : 'No'; }
+
+  trackerActuals[wk] = {startBal:startBal, pnl:pnl, endBal:endBal, ret:ret, met:met};
+  saveTrackerActuals();
+
+  // Sync to sheet
+  if(scriptUrl) {
+    syncToSheet('upsertTrackerRow', {
+      wk:wk, startBal:startBal, pnl:pnl, endBal:endBal, ret:ret, met:met,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  editingWeek = null;
+  renderTracker();
+  toast('Week '+wk+' saved', 2000);
+}
+
+function clearActual(wk) {
+  if(!confirm('Clear actual data for '+wk+'?')) return;
+  delete trackerActuals[wk];
+  saveTrackerActuals();
+  editingWeek = null;
+  renderTracker();
+}
+
+function togglePhase(id) {
+  collapsedPhases[id] = !collapsedPhases[id];
+  saveCollapsed();
+  var arrow = document.getElementById('arrow-'+id);
+  if(arrow) arrow.style.transform = collapsedPhases[id] ? 'rotate(-90deg)' : 'rotate(0deg)';
+  renderTracker();
+}
+
+function toggleHighlight() {
+  highlightMode = !highlightMode;
+  sv('fx_tracker_highlight', highlightMode);
+  var btn = document.getElementById('highlightBtn');
+  if(btn) {
+    btn.textContent = highlightMode ? '🎨 Highlights: On' : '🎨 Highlights: Off';
+    btn.style.background = highlightMode ? 'var(--accent)' : 'transparent';
+    btn.style.color = highlightMode ? '#fff' : 'var(--text2)';
+  }
+  renderTracker();
+}
+
+function expandAll() {
+  PLAN_PHASES.forEach(function(p){ collapsedPhases[p.id] = false; });
+  saveCollapsed();
+  renderTracker();
+}
+function collapseAll() {
+  PLAN_PHASES.forEach(function(p){ collapsedPhases[p.id] = true; });
+  saveCollapsed();
+  renderTracker();
+}
+
+// Tracker summary stats
+function renderTrackerSummary() {
+  var allActuals = [];
+  PLAN_PHASES.forEach(function(ph){
+    ph.weeks.forEach(function(w){
+      var a = trackerActuals[w.wk];
+      if(a && a.endBal != null) allActuals.push({w:w, a:a});
+    });
+  });
+
+  if(!allActuals.length) {
+    document.getElementById('trackerSummary').innerHTML = '<p style="color:var(--text3);font-size:18px">No actuals logged yet.</p>';
+    return;
+  }
+
+  var hits = allActuals.filter(function(x){ return x.a.met === 'Yes'; }).length;
+  var total = allActuals.length;
+  var avgRet = allActuals.reduce(function(s,x){ return s + (x.a.ret||0); }, 0) / total;
+  var lastActual = allActuals[allActuals.length-1];
+  var latestBal = lastActual.a.endBal;
+  var totalPnl = allActuals.reduce(function(s,x){ return s + (x.a.pnl||0); }, 0);
+
+  // Variance vs plan for latest logged week
+  var latestPlanBal = lastActual.w.planEndBal;
+  var varAmt = latestBal - latestPlanBal;
+  var varPct = varAmt / latestPlanBal * 100;
+
+  document.getElementById('trackerSummary').innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">' +
+    kpiMini('Weeks Logged', total+' weeks', '') +
+    kpiMini('Target Hit Rate', hits+'/'+total+' ('+((hits/total)*100).toFixed(0)+'%)', hits/total>=0.5?'var(--green)':'var(--amber)') +
+    kpiMini('Avg Weekly Return', (avgRet>=0?'+':'')+avgRet.toFixed(2)+'%', avgRet>=2.5?'var(--green)':avgRet>=0?'var(--amber)':'var(--red)') +
+    kpiMini('Total P&L (all weeks)', (totalPnl>=0?'+':'')+f0(totalPnl), totalPnl>=0?'var(--green)':'var(--red)') +
+    kpiMini('Latest Balance vs Plan', (varAmt>=0?'+':'')+f0(varAmt)+' ('+( varPct>=0?'+':'')+varPct.toFixed(1)+'%)', varColor(varAmt)) +
+    '</div>';
+}
+
+function kpiMini(label, val, col) {
+  return '<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px">'+
+    '<div style="font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:4px">'+label+'</div>'+
+    '<div style="font-family:var(--fm);font-size:24px;font-weight:600;color:'+(col||'var(--accent)')+'">'+val+'</div>'+
+    '</div>';
+}
+</script>
+
+<style>
+/* Tracker-specific styles */
+.tracker-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.week-row:hover{filter:brightness(.97)}
+.phase-hdr-row:hover{filter:brightness(.97)}
+#trackerTable{border-collapse:collapse;width:100%;font-size:18px;table-layout:auto}
+#trackerTable th{background:var(--surface2);position:sticky;top:0;z-index:10}
+.col-divider{width:8px;background:var(--surface2)!important;padding:0!important;border-left:2px solid var(--border2)!important;border-right:2px solid var(--border2)!important}
+.tracker-wrap{overflow-x:auto}
+</style>
